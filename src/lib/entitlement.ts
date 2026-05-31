@@ -1,91 +1,97 @@
-// Entitlement — read the auth cookie, look up the user in D1, decide
-// what they're allowed to do.
+// Entitlement — read the Clerk-authenticated user, look up their tier
+// in D1, decide what they're allowed to do.
 //
-// Two layers:
-//   1. `getCurrentEmail(request)` — pure cookie check, no DB hit.
-//      Returns email if the signed cookie is valid + unexpired.
-//   2. `getCurrentUser(request, env)` — adds a D1 lookup so we know
-//      the current tier + period_end. Use sparingly.
+// Server-side only. Call from inside `createServerFn(...).handler`,
+// route loaders, or the Stripe webhook (where we have request context).
 //
 // The "is this user allowed to access Month N?" rule:
-//   - month === 1 → always yes (free lead magnet)
+//   - month === 1 → always yes (free lead magnet, even unauthenticated)
 //   - month >= 2 → tier in {basic, premium} AND current_period_end
 //                  is either NULL (Stripe hasn't sent the update yet)
 //                  or in the future
 //
-// We don't trust the cookie's email blindly for tier — we always
-// re-read from D1 because the user could have cancelled mid-session.
+// We don't trust the Clerk session for tier — we always re-read from D1
+// because the user could have cancelled mid-session.
 
-import { getCookie } from "@tanstack/react-start/server";
+import { auth, clerkClient } from "@clerk/tanstack-react-start/server";
 
-import { AUTH_COOKIE_NAME, verifySessionCookie } from "./auth";
 import type { Tier } from "./stripe";
 
 type Env = { DB?: D1Database };
 
 export interface CurrentUser {
+  clerkUserId: string;
   email: string;
   tier: Tier;
   currentPeriodEnd: number | null;
   stripeCustomerId: string | null;
 }
 
-function getSecret(): string {
-  const s = process.env.MAGIC_LINK_SECRET;
-  if (!s || s.length < 16) {
-    throw new Error(
-      "MAGIC_LINK_SECRET is missing or too short (need 16+ chars)",
-    );
-  }
-  return s;
-}
-
 /**
- * Pull the email from the auth cookie, or null if unauth'd. Server-only.
- * Uses TanStack Start's ambient request context (AsyncLocalStorage) via
- * `getCookie`, so no Request param needed inside server fns.
+ * The signed-in user from Clerk, or null if unauthenticated. Does NOT
+ * hit D1 — use `getCurrentUser` for that. Cheap, safe to call often.
  */
-export async function getCurrentEmail(): Promise<string | null> {
-  let cookie: string | undefined;
+export async function getCurrentClerkUserId(): Promise<string | null> {
   try {
-    cookie = getCookie(AUTH_COOKIE_NAME);
+    const { userId } = await auth();
+    return userId ?? null;
   } catch {
-    // Not in a request context (e.g. called from server.ts intercept
-    // before TanStack runs) — caller should pass a Request instead.
-    return null;
-  }
-  if (!cookie) return null;
-  try {
-    return await verifySessionCookie(cookie, getSecret());
-  } catch (err) {
-    console.error("[entitlement] cookie verify failed:", err);
+    // Outside of a request context (e.g. called from server.ts intercept
+    // before Clerk middleware runs).
     return null;
   }
 }
 
 /**
- * Full user lookup: cookie → email → D1 row. Returns null if
- * unauth'd or if the cookie email isn't in our users table.
+ * Full user resolution: Clerk session → D1 row → tier. Returns null
+ * when unauthenticated. Returns a `tier: 'free'` row when the user is
+ * signed in but has never paid (no h2gr_users row yet) — we still need
+ * to know their email/clerkUserId in that case.
  */
 export async function getCurrentUser(env: Env): Promise<CurrentUser | null> {
-  const email = await getCurrentEmail();
-  if (!email) return null;
+  const clerkUserId = await getCurrentClerkUserId();
+  if (!clerkUserId) return null;
+
   const db = env.DB;
-  if (!db) return null;
-  const row = await db
-    .prepare(
-      `SELECT email, tier, stripe_customer_id, current_period_end
-         FROM h2gr_users WHERE email = ?`,
-    )
-    .bind(email)
-    .first<{
-      email: string;
-      tier: string | null;
-      stripe_customer_id: string | null;
-      current_period_end: number | null;
-    }>();
-  if (!row) return null;
+  let row:
+    | {
+        email: string;
+        tier: string | null;
+        stripe_customer_id: string | null;
+        current_period_end: number | null;
+      }
+    | null = null;
+  if (db) {
+    row = await db
+      .prepare(
+        `SELECT email, tier, stripe_customer_id, current_period_end
+           FROM h2gr_users WHERE clerk_user_id = ?`,
+      )
+      .bind(clerkUserId)
+      .first<{
+        email: string;
+        tier: string | null;
+        stripe_customer_id: string | null;
+        current_period_end: number | null;
+      }>();
+  }
+
+  // Signed in but never paid → fetch email from Clerk so the caller has
+  // something to use for Stripe Checkout pre-fill.
+  if (!row) {
+    const email = await fetchClerkPrimaryEmail(clerkUserId);
+    if (!email) return null; // Clerk lookup failed; refuse rather than guess
+    return {
+      clerkUserId,
+      email,
+      tier: "free",
+      currentPeriodEnd: null,
+      stripeCustomerId: null,
+    };
+  }
+
   return {
+    clerkUserId,
     email: row.email,
     tier: normalizeTier(row.tier, row.current_period_end),
     currentPeriodEnd: row.current_period_end,
@@ -94,9 +100,26 @@ export async function getCurrentUser(env: Env): Promise<CurrentUser | null> {
 }
 
 /**
- * Coerce a raw `tier` column to a usable Tier, downgrading to "free"
- * if the subscription has expired (current_period_end is in the past).
+ * Pull the user's primary email address from Clerk. Used during
+ * Checkout-session creation (so Stripe collects the right email) and
+ * during webhook handling (so we have an email even if the user never
+ * paid before).
  */
+export async function fetchClerkPrimaryEmail(
+  clerkUserId: string,
+): Promise<string | null> {
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(clerkUserId);
+    const primaryId = user.primaryEmailAddressId;
+    const primary = user.emailAddresses.find((e) => e.id === primaryId);
+    return primary?.emailAddress ?? user.emailAddresses[0]?.emailAddress ?? null;
+  } catch (err) {
+    console.error("[entitlement] clerk user lookup failed:", err);
+    return null;
+  }
+}
+
 function normalizeTier(
   raw: string | null,
   currentPeriodEnd: number | null,
@@ -113,5 +136,3 @@ export function canAccessMonth(tier: Tier, month: number): boolean {
   if (month <= 1) return true;
   return tier === "basic" || tier === "premium";
 }
-
-export const _AUTH_COOKIE_NAME = AUTH_COOKIE_NAME; // re-export for routes that set cookies

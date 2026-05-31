@@ -12,9 +12,6 @@
 
 import Stripe from "stripe";
 
-import { createMagicLinkToken } from "./auth";
-import { sendMagicLink } from "./email";
-
 export type Tier = "free" | "basic" | "premium";
 
 // ──────────────────────────────────────────────────────────
@@ -67,10 +64,12 @@ export function tierForPriceId(priceId: string | null | undefined): Tier | null 
 
 interface CheckoutArgs {
   tier: "basic" | "premium";
+  clerkUserId: string;      // who's subscribing — bound into metadata so the webhook can persist tier against the right user
+  email: string;            // pre-fills Stripe Checkout so the user doesn't retype
   sessionId: string;        // anonymous session UUID — lets us link the user's free Month 1 to their authed account
   successUrl: string;       // absolute URL Stripe redirects to on success
   cancelUrl: string;        // absolute URL on cancel
-  existingCustomerEmail?: string; // prefill if we know it
+  existingCustomerId?: string; // resubscribe path — reuse the existing Stripe Customer
 }
 
 /**
@@ -84,17 +83,27 @@ export async function createCheckoutSession(args: CheckoutArgs): Promise<string>
     line_items: [{ price: priceIdForTier(args.tier), quantity: 1 }],
     success_url: args.successUrl,
     cancel_url: args.cancelUrl,
-    // Always create a Customer so we can use Customer Portal later.
-    customer_creation: "always",
-    customer_email: args.existingCustomerEmail,
-    // Plumb our session_id + tier through so the webhook can link
-    // the anonymous session to the new authed account.
+    // If we already have a Stripe Customer for this user, reuse it
+    // (lets them keep saved payment methods + billing history). On a
+    // first-time sub there's no customer yet, so we let Stripe create
+    // one and pre-fill the email collection box.
+    ...(args.existingCustomerId
+      ? { customer: args.existingCustomerId }
+      : { customer_creation: "always", customer_email: args.email }),
+    // Plumb our identity + intent through to the webhook.
     client_reference_id: args.sessionId,
-    metadata: { session_id: args.sessionId, tier: args.tier },
-    subscription_data: {
-      metadata: { session_id: args.sessionId, tier: args.tier },
+    metadata: {
+      clerk_user_id: args.clerkUserId,
+      session_id: args.sessionId,
+      tier: args.tier,
     },
-    // Tax / promotions left off for now; add when we want them.
+    subscription_data: {
+      metadata: {
+        clerk_user_id: args.clerkUserId,
+        session_id: args.sessionId,
+        tier: args.tier,
+      },
+    },
     allow_promotion_codes: true,
   });
   if (!session.url) {
@@ -137,12 +146,12 @@ type Env = { DB?: D1Database };
 export async function handleWebhookEvent({
   rawBody,
   signature,
-  origin,
   env,
 }: {
   rawBody: string;
   signature: string | null;
-  origin: string;
+  /** No longer used — kept in the signature for future use (e.g. email links). */
+  origin?: string;
   env: Env;
 }): Promise<{ ok: true; type: string } | { ok: false; reason: string }> {
   const stripe = getStripe();
@@ -164,7 +173,7 @@ export async function handleWebhookEvent({
     case "checkout.session.completed":
       await onCheckoutCompleted(
         event.data.object as Stripe.Checkout.Session,
-        { env, origin },
+        { env },
       );
       return { ok: true, type: event.type };
 
@@ -203,11 +212,19 @@ export async function handleWebhookEvent({
 
 async function onCheckoutCompleted(
   session: Stripe.Checkout.Session,
-  ctx: { env: Env; origin: string },
+  ctx: { env: Env },
 ): Promise<void> {
   const db = ctx.env.DB;
   if (!db) {
     console.error("[stripe-webhook] no DB binding — can't persist user");
+    return;
+  }
+
+  // The Clerk user id was stamped onto the session in metadata when we
+  // created it. Without it we can't bind this payment to a user.
+  const clerkUserId = session.metadata?.clerk_user_id ?? null;
+  if (!clerkUserId) {
+    console.error("[stripe-webhook] checkout completed without clerk_user_id metadata");
     return;
   }
 
@@ -249,42 +266,40 @@ async function onCheckoutCompleted(
     }
   }
 
-  // Upsert into h2gr_users.
+  // Upsert into h2gr_users, keyed by Clerk user id.
   await db
     .prepare(
       `INSERT INTO h2gr_users
-         (email, tier, stripe_customer_id, stripe_subscription_id, current_period_end, updated_at)
-       VALUES (?, ?, ?, ?, ?, unixepoch())
-       ON CONFLICT(email) DO UPDATE SET
+         (clerk_user_id, email, tier, stripe_customer_id, stripe_subscription_id, current_period_end, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, unixepoch())
+       ON CONFLICT(clerk_user_id) DO UPDATE SET
+         email = excluded.email,
          tier = excluded.tier,
          stripe_customer_id = excluded.stripe_customer_id,
          stripe_subscription_id = excluded.stripe_subscription_id,
          current_period_end = excluded.current_period_end,
          updated_at = unixepoch()`,
     )
-    .bind(email, tier ?? "basic", customerId, subscriptionId, currentPeriodEnd)
+    .bind(clerkUserId, email, tier ?? "basic", customerId, subscriptionId, currentPeriodEnd)
     .run();
 
   // Link the anonymous session_id (carried in client_reference_id +
-  // metadata.session_id) to this email — so the user's free Month 1
-  // plan is still theirs after they sign in.
+  // metadata.session_id) to this clerk_user_id so the user's free
+  // Month 1 plan is still theirs after they sign in on another device.
   const sessionId =
     session.client_reference_id ?? session.metadata?.session_id ?? null;
   if (sessionId) {
     await db
       .prepare(
-        `INSERT INTO h2gr_session_email (session_id, email)
+        `INSERT INTO h2gr_session_user (session_id, clerk_user_id)
          VALUES (?, ?)
          ON CONFLICT(session_id) DO UPDATE SET
-           email = excluded.email,
+           clerk_user_id = excluded.clerk_user_id,
            linked_at = unixepoch()`,
       )
-      .bind(sessionId, email)
+      .bind(sessionId, clerkUserId)
       .run();
   }
-
-  // Mint + email a magic link so the user can sign in on any device.
-  await sendSignInLink(email, ctx.origin, "signup", db);
 }
 
 async function onSubscriptionUpserted(
@@ -301,11 +316,11 @@ async function onSubscriptionUpserted(
   const currentPeriodEnd =
     typeof sub.current_period_end === "number" ? sub.current_period_end : null;
 
-  // Look up the email by customer_id (set during checkout).
+  // Look up the Clerk user id by customer_id (set during checkout).
   const row = await db
-    .prepare(`SELECT email FROM h2gr_users WHERE stripe_customer_id = ?`)
+    .prepare(`SELECT clerk_user_id FROM h2gr_users WHERE stripe_customer_id = ?`)
     .bind(customerId)
-    .first<{ email: string }>();
+    .first<{ clerk_user_id: string }>();
   if (!row) {
     console.warn(
       "[stripe-webhook] subscription.updated for unknown customer:",
@@ -321,9 +336,9 @@ async function onSubscriptionUpserted(
          stripe_subscription_id = ?,
          current_period_end = ?,
          updated_at = unixepoch()
-       WHERE email = ?`,
+       WHERE clerk_user_id = ?`,
     )
-    .bind(tier ?? "basic", sub.id, currentPeriodEnd, row.email)
+    .bind(tier ?? "basic", sub.id, currentPeriodEnd, row.clerk_user_id)
     .run();
 }
 
@@ -350,29 +365,3 @@ async function onSubscriptionDeleted(
     .run();
 }
 
-// ──────────────────────────────────────────────────────────
-// Magic-link plumbing (used by webhook + /auth/signin route)
-// ──────────────────────────────────────────────────────────
-
-/**
- * Create a magic-link DB row + email the link to the user.
- * Origin is e.g. "https://how2getrich.online" — pulled from the
- * incoming request so dev (localhost) + prod work the same way.
- */
-export async function sendSignInLink(
-  email: string,
-  origin: string,
-  context: "signup" | "signin",
-  db: D1Database,
-): Promise<void> {
-  const { token, tokenHash, expiresAt } = await createMagicLinkToken();
-  await db
-    .prepare(
-      `INSERT INTO h2gr_magic_links (token_hash, email, expires_at)
-       VALUES (?, ?, ?)`,
-    )
-    .bind(tokenHash, email, expiresAt)
-    .run();
-  const url = `${origin}/auth/verify?token=${encodeURIComponent(token)}`;
-  await sendMagicLink({ to: email, url, context });
-}

@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
+import { Show, SignInButton } from "@clerk/tanstack-react-start";
 
 /**
- * Left-side nav rail used on every how2getrich screen. Three items
- * (Home / About / Dashboard) in 19px JetBrains Mono — smaller than
- * the wordmark on purpose, so the eye reads the wordmark as the
- * primary focal point and the nav as a quiet rail underneath.
+ * Left-side nav rail used on every how2getrich screen. Three primary
+ * items (Home / About / Dashboard) plus an auth-state-aware Account
+ * link at the bottom. All in JetBrains Mono — smaller than the
+ * wordmark on purpose so the wordmark stays the primary focal point.
  */
 export function Sidebar() {
   return (
@@ -22,9 +23,21 @@ export function Sidebar() {
       <Divider />
       <SidebarLink to="/todo/upgrade" label="Dashboard" className="mt-[17px]" />
       <Divider />
-      {/* Account → /account if signed in, otherwise /auth/signin (the
-          account route redirects unauthed visitors). */}
-      <SidebarLink to="/account" label="Account" className="mt-[17px]" />
+      {/* Signed in → "Account" routes to /account.
+          Signed out → "Sign in" opens Clerk's modal in place. */}
+      <Show when="signed-in">
+        <SidebarLink to="/account" label="Account" className="mt-[17px]" />
+      </Show>
+      <Show when="signed-out">
+        <SignInButton mode="modal">
+          <button
+            type="button"
+            className="mt-[17px] block h-[21px] w-full cursor-pointer text-center text-[17px] leading-none text-white/90 transition hover:text-white"
+          >
+            Sign in
+          </button>
+        </SignInButton>
+      </Show>
     </nav>
   );
 }

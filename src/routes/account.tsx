@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { env } from "cloudflare:workers";
+import { UserButton } from "@clerk/tanstack-react-start";
 
 import { PageLayout } from "@/components/how2getrich/PageLayout";
 import { Wordmark } from "@/components/how2getrich/Wordmark";
@@ -15,9 +16,8 @@ const FONT_STACK =
 // ──────────────────────────────────────────────────────────
 
 /**
- * Read the current user for the account page. Returns null if the
- * cookie is missing — the route loader uses this to redirect to
- * /auth/signin.
+ * Read the current user for the account page. Returns null if not
+ * signed in — the route loader uses this to bounce to Clerk sign-in.
  */
 const fetchAccount = createServerFn({ method: "GET" }).handler(async () => {
   const user = await getCurrentUser(env as unknown as { DB?: D1Database });
@@ -31,9 +31,8 @@ const fetchAccount = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 /**
- * Mint a Customer Portal session URL for the current user. Returns
- * { ok: true, url } or { ok: false, reason }. Client navigates to
- * the URL.
+ * Mint a Customer Portal session URL for the current user. Client
+ * navigates to the returned URL.
  */
 const openCustomerPortal = createServerFn({ method: "POST" }).handler(
   async (): Promise<
@@ -64,20 +63,15 @@ export const Route = createFileRoute("/account")({
   head: () => ({
     meta: [
       { title: "Account — how2getrich.online" },
-      {
-        name: "description",
-        content: "Manage your how2getrich subscription.",
-      },
+      { name: "description", content: "Manage your how2getrich subscription." },
     ],
   }),
   loader: async () => {
     const data = await fetchAccount();
     if (!data) {
-      // Not signed in → bounce to sign-in, returning here after.
-      throw redirect({
-        to: "/auth_/signin",
-        search: { error: "" },
-      });
+      // Not signed in — send to landing where they can hit Subscribe
+      // and get the Clerk sign-in modal. Cleaner than a bare error page.
+      throw redirect({ to: "/" });
     }
     return data;
   },
@@ -113,12 +107,18 @@ function AccountPage() {
   return (
     <PageLayout>
       <Wordmark />
-      <h1
-        className="mt-[28px] text-[22px] leading-tight text-white"
-        style={{ fontFamily: FONT_STACK }}
-      >
-        Account
-      </h1>
+
+      <div className="mt-[28px] flex items-center justify-between gap-[16px]">
+        <h1
+          className="text-[22px] leading-tight text-white"
+          style={{ fontFamily: FONT_STACK }}
+        >
+          Account
+        </h1>
+        {/* Clerk's UserButton handles sign-out, "manage account", etc.
+            Themed via the appearance prop in __root.tsx ClerkProvider. */}
+        <UserButton afterSignOutUrl="/" />
+      </div>
 
       <dl
         className="mt-[28px] flex flex-col gap-[14px] text-[14px] text-white/85"
@@ -128,9 +128,7 @@ function AccountPage() {
         <Row label="plan" value={tierLabel} />
         {periodEndStr && (
           <Row
-            label={
-              data.tier === "free" ? "expired on" : "renews on"
-            }
+            label={data.tier === "free" ? "expired on" : "renews on"}
             value={periodEndStr}
           />
         )}

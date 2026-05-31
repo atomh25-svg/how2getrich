@@ -1,10 +1,5 @@
 import "./lib/error-capture";
 
-import {
-  buildAuthCookieHeader,
-  hashToken,
-  signSessionCookie,
-} from "./lib/auth";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { handleWebhookEvent } from "./lib/stripe";
@@ -107,87 +102,11 @@ async function handleStripeWebhook(
   }
 }
 
-// Magic-link verifier. Lives in server.ts (not as a React route) so
-// we can set the Set-Cookie header alongside a redirect with full
-// control + no SSR overhead. Flow:
-//   1. Take ?token from query
-//   2. Look up SHA-256(token) in h2gr_magic_links
-//   3. If unused + unexpired, mark used, mint a signed session cookie,
-//      redirect to /todo (or ?next= if present)
-//   4. On any failure, redirect to /auth/signin?error=...
-async function handleAuthVerify(
-  request: Request,
-  env: unknown,
-): Promise<Response> {
-  const url = new URL(request.url);
-  const token = url.searchParams.get("token");
-  const nextPath = sanitizeNextPath(url.searchParams.get("next"));
-  const origin = url.origin;
-
-  function failRedirect(reason: string): Response {
-    return Response.redirect(
-      `${origin}/auth/signin?error=${encodeURIComponent(reason)}`,
-      302,
-    );
-  }
-
-  if (!token) return failRedirect("missing-token");
-  const db = (env as { DB?: D1Database }).DB;
-  if (!db) return failRedirect("no-db");
-
-  const tokenHash = await hashToken(token);
-  const row = await db
-    .prepare(
-      `SELECT email, expires_at, used_at FROM h2gr_magic_links
-        WHERE token_hash = ?`,
-    )
-    .bind(tokenHash)
-    .first<{ email: string; expires_at: number; used_at: number | null }>();
-
-  if (!row) return failRedirect("invalid-token");
-  if (row.used_at != null) return failRedirect("token-already-used");
-  if (row.expires_at < Math.floor(Date.now() / 1000)) {
-    return failRedirect("token-expired");
-  }
-
-  // Mark used + mint the session cookie.
-  await db
-    .prepare(`UPDATE h2gr_magic_links SET used_at = unixepoch() WHERE token_hash = ?`)
-    .bind(tokenHash)
-    .run();
-
-  const secret = process.env.MAGIC_LINK_SECRET;
-  if (!secret) {
-    console.error("[auth/verify] MAGIC_LINK_SECRET not set");
-    return failRedirect("server-misconfigured");
-  }
-  const cookieValue = await signSessionCookie(row.email, secret);
-
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: `${origin}${nextPath}`,
-      "Set-Cookie": buildAuthCookieHeader(cookieValue),
-    },
-  });
-}
-
-// Only allow relative paths starting with /. Prevents open-redirect
-// via ?next=https://evil.com.
-function sanitizeNextPath(next: string | null): string {
-  if (!next) return "/todo";
-  if (!next.startsWith("/") || next.startsWith("//")) return "/todo";
-  return next;
-}
-
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     const url = new URL(request.url);
     if (url.pathname === "/api/stripe/webhook") {
       return handleStripeWebhook(request, env);
-    }
-    if (url.pathname === "/auth/verify") {
-      return handleAuthVerify(request, env);
     }
     try {
       const handler = await getServerEntry();

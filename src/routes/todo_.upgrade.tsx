@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { env } from "cloudflare:workers";
+import {
+  SignInButton,
+  Show,
+  useUser,
+} from "@clerk/tanstack-react-start";
 
 import { PageLayout } from "@/components/how2getrich/PageLayout";
 import { RightRailWithMoreInfo } from "./todo";
 import { createCheckoutSession } from "@/lib/stripe";
+import { getCurrentUser } from "@/lib/entitlement";
 
 const FONT_STACK =
   '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace';
@@ -25,22 +32,33 @@ const startCheckout = createServerFn({ method: "POST" })
         typeof data?.returnPath === "string" ? data.returnPath : "/todo",
     }),
   )
-  .handler(async ({ data }): Promise<{ ok: true; url: string } | { ok: false; reason: string }> => {
-    if (!data.sessionId) return { ok: false, reason: "missing-session-id" };
-    const origin = process.env.PUBLIC_ORIGIN ?? "https://how2getrich.online";
-    try {
-      const url = await createCheckoutSession({
-        tier: data.tier,
-        sessionId: data.sessionId,
-        successUrl: `${origin}${data.returnPath}?subscribed=1`,
-        cancelUrl: `${origin}/todo_/upgrade?s=${encodeURIComponent(data.sessionId)}`,
-      });
-      return { ok: true, url };
-    } catch (err) {
-      console.error("[checkout] failed:", err);
-      return { ok: false, reason: "stripe-error" };
-    }
-  });
+  .handler(
+    async ({
+      data,
+    }): Promise<{ ok: true; url: string } | { ok: false; reason: string }> => {
+      // Must be Clerk-signed-in to subscribe. The client gates the
+      // button too, but server-side check is the source of truth.
+      const user = await getCurrentUser(env as unknown as { DB?: D1Database });
+      if (!user) return { ok: false, reason: "not-signed-in" };
+
+      const origin = process.env.PUBLIC_ORIGIN ?? "https://how2getrich.online";
+      try {
+        const url = await createCheckoutSession({
+          tier: data.tier,
+          clerkUserId: user.clerkUserId,
+          email: user.email,
+          sessionId: data.sessionId,
+          existingCustomerId: user.stripeCustomerId ?? undefined,
+          successUrl: `${origin}${data.returnPath}?subscribed=1`,
+          cancelUrl: `${origin}/todo_/upgrade?s=${encodeURIComponent(data.sessionId)}`,
+        });
+        return { ok: true, url };
+      } catch (err) {
+        console.error("[checkout] failed:", err);
+        return { ok: false, reason: "stripe-error" };
+      }
+    },
+  );
 
 // ──────────────────────────────────────────────────────────
 // Route
@@ -71,36 +89,36 @@ const TIERS: Tier[] = [
   {
     id: "premium",
     name: "Premium Plan",
-    description: "Deeper per-day detail · more examples · common pitfalls · tool picks",
+    description:
+      "Deeper per-day detail · more examples · common pitfalls · tool picks",
     price: "$19.99 a month",
   },
 ];
 
 function TodoPaywall() {
   const { s: sessionIdFromUrl } = useSearch({ from: "/todo_/upgrade" });
+  const { isSignedIn } = useUser();
   const [pending, setPending] = useState<Tier["id"] | null>(null);
 
   async function onSubscribe(tier: Tier["id"]) {
     if (pending) return;
-    // Fall back to a localStorage session_id if the URL didn't carry one.
     let sessionId = sessionIdFromUrl;
     if (!sessionId && typeof window !== "undefined") {
       sessionId =
-        window.localStorage.getItem("h2gr.sessionId") ??
-        crypto.randomUUID();
+        window.localStorage.getItem("h2gr.sessionId") ?? crypto.randomUUID();
       window.localStorage.setItem("h2gr.sessionId", sessionId);
     }
     setPending(tier);
     try {
       const result = await startCheckout({
-        data: {
-          tier,
-          sessionId,
-          returnPath: "/todo",
-        },
+        data: { tier, sessionId, returnPath: "/todo" },
       });
       if (result.ok) {
         window.location.href = result.url;
+      } else if (result.reason === "not-signed-in") {
+        window.alert(
+          "Please sign in first — the Sign In button is at the top of this card.",
+        );
       } else {
         window.alert(
           `Couldn't open checkout: ${result.reason}. Try again in a moment.`,
@@ -129,18 +147,39 @@ function TodoPaywall() {
             Unlock Full Plan
           </h2>
 
-          <ul className="mt-[52px] flex w-full flex-col gap-[52px]">
-            {TIERS.map((tier) => (
-              <li key={tier.id}>
-                <TierBlock
-                  tier={tier}
-                  pending={pending === tier.id}
-                  disabled={pending != null}
-                  onSubscribe={() => onSubscribe(tier.id)}
-                />
-              </li>
-            ))}
-          </ul>
+          {/* Auth gate: if signed out, show one big "Sign in with Google"
+              button instead of the tier list. The Subscribe buttons are
+              meaningless until Clerk has an email to pre-fill checkout. */}
+          <Show when="signed-out">
+            <div className="mt-[40px] flex w-full flex-col items-center gap-[12px]">
+              <p className="text-center text-[14px] text-black/60">
+                Sign in first — we&apos;ll bill you under that account.
+              </p>
+              <SignInButton mode="modal">
+                <button
+                  type="button"
+                  className="rounded-[6px] bg-black px-[24px] py-[10px] text-[14px] text-white transition hover:bg-black/85"
+                >
+                  Sign in to continue
+                </button>
+              </SignInButton>
+            </div>
+          </Show>
+
+          <Show when="signed-in">
+            <ul className="mt-[52px] flex w-full flex-col gap-[52px]">
+              {TIERS.map((tier) => (
+                <li key={tier.id}>
+                  <TierBlock
+                    tier={tier}
+                    pending={pending === tier.id}
+                    disabled={pending != null || !isSignedIn}
+                    onSubscribe={() => onSubscribe(tier.id)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </Show>
         </div>
       </div>
     </PageLayout>

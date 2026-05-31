@@ -7,7 +7,13 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { ClerkProvider } from "@clerk/tanstack-react-start";
+
 import appCss from "../styles.css?url";
+
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as
+  | string
+  | undefined;
 // Cropped, tighter-bounding-box version of the money stack so the
 // pixel art actually fills the favicon area at 16/32px instead of
 // shrinking into a sea of transparent padding.
@@ -131,12 +137,28 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
-  // No Clerk on how2getrich — the entire experience is anonymous
-  // (session_id stashed in localStorage + URL). The query client is
-  // the only context the rest of the tree needs.
+  // Clerk wraps everything so any route can call `useUser()` /
+  // `<SignedIn>` / `<UserButton>`. Appearance is themed to the
+  // warm-dark/gold how2getrich palette so the hosted sign-in pages
+  // + UserButton popovers don't look like a different product.
   return (
-    <QueryClientProvider client={queryClient}>
-      <Outlet />
-    </QueryClientProvider>
+    <ClerkProvider
+      publishableKey={CLERK_PUBLISHABLE_KEY}
+      appearance={{
+        variables: {
+          colorPrimary: "rgb(214, 166, 81)",         // warm gold
+          colorBackground: "rgb(26, 22, 18)",         // warm dark
+          colorText: "rgb(244, 239, 230)",            // bone white
+          colorInputBackground: "rgb(36, 30, 24)",
+          colorInputText: "rgb(244, 239, 230)",
+          colorTextSecondary: "rgb(154, 146, 134)",
+          borderRadius: "0.5rem",
+        },
+      }}
+    >
+      <QueryClientProvider client={queryClient}>
+        <Outlet />
+      </QueryClientProvider>
+    </ClerkProvider>
   );
 }

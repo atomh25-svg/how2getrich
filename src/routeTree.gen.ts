@@ -14,7 +14,6 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TodoUpgradeRouteImport } from './routes/todo_.upgrade'
 import { Route as TodoDayRouteImport } from './routes/todo_.$day'
-import { Route as AuthSigninRouteImport } from './routes/auth_.signin'
 
 const TodoRoute = TodoRouteImport.update({
   id: '/todo',
@@ -41,17 +40,11 @@ const TodoDayRoute = TodoDayRouteImport.update({
   path: '/todo/$day',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthSigninRoute = AuthSigninRouteImport.update({
-  id: '/auth_/signin',
-  path: '/auth/signin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/todo': typeof TodoRoute
-  '/auth/signin': typeof AuthSigninRoute
   '/todo/$day': typeof TodoDayRoute
   '/todo/upgrade': typeof TodoUpgradeRoute
 }
@@ -59,7 +52,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/todo': typeof TodoRoute
-  '/auth/signin': typeof AuthSigninRoute
   '/todo/$day': typeof TodoDayRoute
   '/todo/upgrade': typeof TodoUpgradeRoute
 }
@@ -68,42 +60,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/todo': typeof TodoRoute
-  '/auth_/signin': typeof AuthSigninRoute
   '/todo_/$day': typeof TodoDayRoute
   '/todo_/upgrade': typeof TodoUpgradeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/account'
-    | '/todo'
-    | '/auth/signin'
-    | '/todo/$day'
-    | '/todo/upgrade'
+  fullPaths: '/' | '/account' | '/todo' | '/todo/$day' | '/todo/upgrade'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/account'
-    | '/todo'
-    | '/auth/signin'
-    | '/todo/$day'
-    | '/todo/upgrade'
-  id:
-    | '__root__'
-    | '/'
-    | '/account'
-    | '/todo'
-    | '/auth_/signin'
-    | '/todo_/$day'
-    | '/todo_/upgrade'
+  to: '/' | '/account' | '/todo' | '/todo/$day' | '/todo/upgrade'
+  id: '__root__' | '/' | '/account' | '/todo' | '/todo_/$day' | '/todo_/upgrade'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
   TodoRoute: typeof TodoRoute
-  AuthSigninRoute: typeof AuthSigninRoute
   TodoDayRoute: typeof TodoDayRoute
   TodoUpgradeRoute: typeof TodoUpgradeRoute
 }
@@ -145,13 +116,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TodoDayRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth_/signin': {
-      id: '/auth_/signin'
-      path: '/auth/signin'
-      fullPath: '/auth/signin'
-      preLoaderRoute: typeof AuthSigninRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -159,7 +123,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   TodoRoute: TodoRoute,
-  AuthSigninRoute: AuthSigninRoute,
   TodoDayRoute: TodoDayRoute,
   TodoUpgradeRoute: TodoUpgradeRoute,
 }

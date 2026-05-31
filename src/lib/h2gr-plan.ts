@@ -15,29 +15,37 @@ type Env = { DB?: D1Database };
 const MAX_MONTH = 12;
 
 /**
- * Pick the right tier for generation. We accept either the cookie
- * user's tier OR look up by session_id → email link (so a user who
- * subscribed on Device A still gets paid output on Device B as long
- * as they sign in).
+ * Pick the right tier for generation. Priority:
+ *   1. Current Clerk session → that user's tier from D1
+ *   2. session_id → clerk_user_id link → that user's tier
+ *   3. Anonymous → "free"
+ *
+ * (2) covers the case where someone subscribed on Device A and is now
+ * deep-linking into the URL on Device B without being signed in to
+ * Clerk yet. We honor the paid month even pre-signin so they're not
+ * locked out by a stale tab.
  */
 async function resolveTier(
   db: D1Database | undefined,
   sessionId: string,
-): Promise<{ tier: Tier; email: string | null }> {
-  // First: current cookie user (authenticated).
+): Promise<{ tier: Tier; clerkUserId: string | null }> {
   const user = await getCurrentUser({ DB: db });
-  if (user) return { tier: user.tier, email: user.email };
-  // Second: session_id → email link, then email → user.
-  if (db) {
+  if (user) return { tier: user.tier, clerkUserId: user.clerkUserId };
+
+  if (db && sessionId) {
     const row = await db
       .prepare(
-        `SELECT u.email, u.tier, u.current_period_end
-           FROM h2gr_session_email se
-           JOIN h2gr_users u ON u.email = se.email
-          WHERE se.session_id = ?`,
+        `SELECT u.clerk_user_id, u.tier, u.current_period_end
+           FROM h2gr_session_user su
+           JOIN h2gr_users u ON u.clerk_user_id = su.clerk_user_id
+          WHERE su.session_id = ?`,
       )
       .bind(sessionId)
-      .first<{ email: string; tier: string | null; current_period_end: number | null }>();
+      .first<{
+        clerk_user_id: string;
+        tier: string | null;
+        current_period_end: number | null;
+      }>();
     if (row) {
       const tier =
         row.tier === "basic" || row.tier === "premium"
@@ -46,10 +54,10 @@ async function resolveTier(
             ? "free"
             : row.tier
           : "free";
-      return { tier, email: row.email };
+      return { tier, clerkUserId: row.clerk_user_id };
     }
   }
-  return { tier: "free", email: null };
+  return { tier: "free", clerkUserId: null };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -344,12 +352,12 @@ export const getH2GRStatus = createServerFn({ method: "GET" })
       data,
     }): Promise<{
       tier: Tier;
-      email: string | null;
+      clerkUserId: string | null;
       monthsGenerated: number[];
     }> => {
       const sessionId = data.sessionId.trim();
       const db = (env as unknown as Env).DB;
-      const { tier, email } = await resolveTier(db, sessionId);
+      const { tier, clerkUserId } = await resolveTier(db, sessionId);
       let monthsGenerated: number[] = [];
       if (db && sessionId) {
         try {
@@ -364,6 +372,6 @@ export const getH2GRStatus = createServerFn({ method: "GET" })
           console.error("[h2gr-status] months lookup failed:", err);
         }
       }
-      return { tier, email, monthsGenerated };
+      return { tier, clerkUserId, monthsGenerated };
     },
   );
