@@ -270,8 +270,21 @@ Personalization rules — the BIGGEST source of value:
 
 If the person's input is empty or one word, fall back to a generic but still-named-tool plan (e.g. titles that reference Reddit, Carrd, Stripe Payment Links by name).`;
 
+/**
+ * Generate a tailored 7-day plan.
+ *
+ * Month 1 (the free lead magnet) is generated from just the user's
+ * "tell me about yourself" input. Month 2+ (paid) takes an array of
+ * the user's prior months as context so the new plan moves them
+ * forward instead of restarting from "pick a boring skill" every time.
+ *
+ * priorMonths is an array of full plan arrays — index 0 is Month 1,
+ * index 1 is Month 2, etc. Pass [] for month 1.
+ */
 export async function generateSevenDayPlanFor(
   rawInput: string,
+  month: number = 1,
+  priorMonths: H2GRPlanStep[][] = [],
 ): Promise<H2GRPlanStep[]> {
   const input = (rawInput ?? "").trim().slice(0, 800);
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -280,7 +293,7 @@ export async function generateSevenDayPlanFor(
     return staticSevenDayPlan();
   }
   try {
-    return await generateSevenDayPlanWithClaude(input, apiKey);
+    return await generateSevenDayPlanWithClaude(input, month, priorMonths, apiKey);
   } catch (err) {
     console.error("[h2gr-plan] Claude call failed:", err);
     return staticSevenDayPlan();
@@ -289,16 +302,40 @@ export async function generateSevenDayPlanFor(
 
 async function generateSevenDayPlanWithClaude(
   input: string,
+  month: number,
+  priorMonths: H2GRPlanStep[][],
   apiKey: string,
 ): Promise<H2GRPlanStep[]> {
+  // For Month 2+: summarize what they've already been told to do so
+  // the new plan doesn't re-prescribe Day 1 of Month 1 again. We pass
+  // up to the last 3 months as context (keeps the prompt bounded).
+  const priorContext =
+    month > 1 && priorMonths.length > 0
+      ? "\n\nPlans this person has already received in prior months (use this as context — the NEW plan must advance them, not repeat):\n" +
+        priorMonths
+          .slice(-3)
+          .map((plan, i) => {
+            const monthNum = priorMonths.length - Math.min(3, priorMonths.length) + i + 1;
+            return `--- Month ${monthNum} ---\n${plan
+              .map((s, j) => `${j + 1}. ${s.title}`)
+              .join("\n")}`;
+          })
+          .join("\n")
+      : "";
+
+  const monthInstruction =
+    month > 1
+      ? `\n\nThis is Month ${month} of their journey. They've completed Month 1 (and possibly more). Their plan for this month should ADVANCE them — assume they now have a basic offer, a one-pager, and maybe a few customers from Month 1. Focus this month on: scaling distribution, raising prices, productizing what they sold, or expanding to a second customer segment. Be honest if they should pivot.`
+      : "";
+
   const userMessage = input
     ? `Person's "tell me about yourself" answer:
 """
 ${input}
-"""
+"""${priorContext}${monthInstruction}
 
-Generate their tailored 7-day plan as JSON only.`
-    : `The user did not share anything about themselves. Generate the generic 7-day plan as JSON only.`;
+Generate their tailored ${month > 1 ? `Month ${month}` : ""} 7-day plan as JSON only.`
+    : `The user did not share anything about themselves. Generate the generic 7-day plan as JSON only.${monthInstruction}`;
 
   const response = await fetch(CLAUDE_ENDPOINT, {
     method: "POST",
@@ -430,8 +467,16 @@ export type H2GRDayDetail = {
   steps: string[];
   example: string;
   if_stuck: string;
+  // Premium-only — undefined for free/basic. Renderers should check
+  // before rendering these sections.
+  pitfalls?: string[];
+  tools?: string[];
 };
 
+/**
+ * Base per-day breakdown prompt. Used for free + basic tier users.
+ * Premium gets an extended version below.
+ */
 const H2GR_DAY_DETAIL_SYSTEM_PROMPT = `You are zooming into ONE day of a 7-day "how to get rich" plan and producing a detailed breakdown a first-time founder can execute in 30-60 minutes.
 
 Output format (HARD rules):
@@ -449,10 +494,39 @@ Personalization rules:
 - DO NOT use meta-framework language ("boring skill", "dumbest offer", "25 real people") unless it genuinely fits.
 - If they said they hate selling, the steps cannot include cold DMs. If they don't code, use no-code tools by name (Carrd, Notion, Stripe Payment Links).`;
 
+/**
+ * Premium tier prompt — same structure, but every section is deeper.
+ * More steps, more examples, an extra "common pitfalls" array, longer
+ * "if_stuck" with multiple escape hatches. This is what the user gets
+ * for the $10/mo Premium price differential.
+ */
+const H2GR_DAY_DETAIL_SYSTEM_PROMPT_PREMIUM = `You are zooming into ONE day of a 7-day "how to get rich" plan for a PREMIUM subscriber. The breakdown must be substantially deeper than the basic version — premium users paid for detail, so give it to them.
+
+Output format (HARD rules):
+- Output ONLY a JSON object. No prose before or after. No markdown code fences.
+- Object shape: { "headline": string, "why": string, "steps": string[5..7], "example": string, "if_stuck": string, "pitfalls": string[2..3], "tools": string[2..4] }
+- "headline": 6-10 words restating today's action in the user's own context. Imperative.
+- "why": 2-3 sentences explaining (1) why this is today's task in the arc, (2) what success looks like, (3) the cost of skipping it. Under 320 chars.
+- "steps": EXACTLY 5 to 7 micro-steps, each ONE sentence, 15-28 words. Each must name a specific tool, URL, dollar amount, message script, or button label. Include at least one step that's a copy-pasteable script or prompt (in quotes inside the sentence).
+- "example": 2-3 sentences showing what this looks like for THIS person specifically — reference their stated skill, job, situation, AND name a specific number / fee / volume. Under 400 chars.
+- "if_stuck": 2 sentences with TWO escape hatches: (1) a concrete Claude prompt template, AND (2) a specific subreddit or community to ask in. Under 320 chars.
+- "pitfalls": 2-3 ONE-sentence warnings about the most common ways first-timers screw this up specifically (not generic advice).
+- "tools": 2-4 named tools, each as "Tool Name — one-phrase reason it's the right one for this step". E.g. "Carrd — $19/year, one-page sites in 10 minutes, no code".
+
+Personalization rules:
+- Read the person's "tell me about yourself" answer carefully. Every step and example must reference their actual skill, job, location, life stage, time, or constraint.
+- The other 6 days of their plan are provided as context — refer to "yesterday" and "tomorrow" by what those days actually are.
+- DO NOT use meta-framework language unless it genuinely fits.
+- If they said they hate selling, no cold DMs. If they don't code, no-code tools by name only.
+- Premium pitfalls should reference SPECIFIC mistakes — "people set their Stripe Payment Link price 10x too low because they anchor on competitors' subscription prices" beats "don't underprice".`;
+
+export type Tier = "free" | "basic" | "premium";
+
 export async function generateH2GRDayDetailFor(
   input: string,
   plan: H2GRPlanStep[],
   dayNumber: number,
+  tier: Tier = "free",
 ): Promise<H2GRDayDetail> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -460,7 +534,7 @@ export async function generateH2GRDayDetailFor(
     return mockH2GRDayDetail(plan, dayNumber);
   }
   try {
-    return await generateH2GRDayDetailWithClaude(input, plan, dayNumber, apiKey);
+    return await generateH2GRDayDetailWithClaude(input, plan, dayNumber, tier, apiKey);
   } catch (err) {
     console.error("[h2gr-day-detail] Claude call failed:", err);
     return mockH2GRDayDetail(plan, dayNumber);
@@ -471,6 +545,7 @@ async function generateH2GRDayDetailWithClaude(
   input: string,
   plan: H2GRPlanStep[],
   dayNumber: number,
+  tier: Tier,
   apiKey: string,
 ): Promise<H2GRDayDetail> {
   const idx = Math.max(0, Math.min(plan.length - 1, dayNumber - 1));
@@ -504,11 +579,15 @@ Generate today's executable breakdown as JSON only.`;
     },
     body: JSON.stringify({
       model: CLAUDE_MODEL,
-      max_tokens: 1536,
+      // Premium needs more headroom — 5-7 steps + pitfalls + tools sections.
+      max_tokens: tier === "premium" ? 2560 : 1536,
       system: [
         {
           type: "text",
-          text: H2GR_DAY_DETAIL_SYSTEM_PROMPT,
+          text:
+            tier === "premium"
+              ? H2GR_DAY_DETAIL_SYSTEM_PROMPT_PREMIUM
+              : H2GR_DAY_DETAIL_SYSTEM_PROMPT,
           cache_control: { type: "ephemeral" },
         },
       ],
@@ -528,6 +607,8 @@ Generate today's executable breakdown as JSON only.`;
     JSON.stringify(data.usage),
     "day:",
     dayNumber,
+    "tier:",
+    tier,
   );
 
   const cleaned = text
@@ -577,24 +658,47 @@ Generate today's executable breakdown as JSON only.`;
     for (let i = steps.length; i < 3; i++) steps.push(mock.steps[i]);
   }
 
+  // Premium-only sections (undefined for free/basic).
+  let pitfalls: string[] | undefined;
+  let tools: string[] | undefined;
+  if (tier === "premium") {
+    const pitfallsRaw = Array.isArray(o.pitfalls) ? o.pitfalls : [];
+    const list: string[] = [];
+    for (const p of pitfallsRaw) {
+      if (typeof p === "string" && p.trim()) list.push(trim(p.trim(), 240));
+    }
+    if (list.length > 0) pitfalls = list.slice(0, 3);
+    const toolsRaw = Array.isArray(o.tools) ? o.tools : [];
+    const toolsList: string[] = [];
+    for (const t of toolsRaw) {
+      if (typeof t === "string" && t.trim()) toolsList.push(trim(t.trim(), 160));
+    }
+    if (toolsList.length > 0) tools = toolsList.slice(0, 4);
+  }
+
+  // Premium gets more steps (5-7) — bump the slice limit for that tier.
+  const maxSteps = tier === "premium" ? 7 : 5;
+
   return {
     day_number: dayNumber,
     headline: trim(headline || today?.title || `Day ${dayNumber}`, 120),
     why:
       trim(
         why || `Day ${dayNumber} of 7 — keeps the arc moving toward your first paying customer.`,
-        220,
+        tier === "premium" ? 380 : 220,
       ),
-    steps: steps.slice(0, 5),
+    steps: steps.slice(0, maxSteps),
     example: trim(
       example || "Adapt today's action to what you actually have time and tools for.",
-      280,
+      tier === "premium" ? 440 : 280,
     ),
     if_stuck: trim(
       ifStuck ||
         "Paste exactly what you're stuck on into Claude with today's headline as context.",
-      240,
+      tier === "premium" ? 380 : 240,
     ),
+    pitfalls,
+    tools,
   };
 }
 

@@ -21,6 +21,10 @@ export function Sidebar() {
       <SidebarLink to="/todo" label="About" className="mt-[17px]" />
       <Divider />
       <SidebarLink to="/todo/upgrade" label="Dashboard" className="mt-[17px]" />
+      <Divider />
+      {/* Account → /account if signed in, otherwise /auth/signin (the
+          account route redirects unauthed visitors). */}
+      <SidebarLink to="/account" label="Account" className="mt-[17px]" />
     </nav>
   );
 }

@@ -13,6 +13,9 @@ type DayDetail = {
   steps: string[];
   example: string;
   if_stuck: string;
+  // Premium-only — undefined for free/basic.
+  pitfalls?: string[];
+  tools?: string[];
 };
 
 export const Route = createFileRoute("/todo_/$day")({
@@ -24,6 +27,12 @@ export const Route = createFileRoute("/todo_/$day")({
   }),
   validateSearch: (search: Record<string, unknown>) => ({
     s: typeof search.s === "string" ? search.s : "",
+    month:
+      typeof search.month === "number"
+        ? Math.max(1, Math.min(12, Math.round(search.month)))
+        : typeof search.month === "string" && /^\d+$/.test(search.month)
+          ? Math.max(1, Math.min(12, parseInt(search.month, 10)))
+          : 1,
   }),
   parseParams: (params) => ({
     day: String(params.day),
@@ -42,7 +51,7 @@ export const Route = createFileRoute("/todo_/$day")({
  */
 function DayDetailPage() {
   const { day } = Route.useParams();
-  const { s: sessionId } = Route.useSearch();
+  const { s: sessionId, month } = Route.useSearch();
   const dayNumber = Math.max(1, Math.min(7, parseInt(day, 10) || 1));
 
   const [detail, setDetail] = useState<DayDetail | null>(null);
@@ -68,7 +77,7 @@ function DayDetailPage() {
     (async () => {
       try {
         const res = await getH2GRDayDetail({
-          data: { sessionId: sid, dayNumber },
+          data: { sessionId: sid, dayNumber, month },
         });
         if (cancelled) return;
         if (res.ok) {
@@ -121,7 +130,7 @@ function DayDetailPage() {
           >
             <Link
               to="/todo"
-              search={{ s: sessionId }}
+              search={{ s: sessionId, month }}
               className="text-[13px] text-white/45 transition hover:text-white/75"
             >
               ← back to plan
@@ -186,6 +195,39 @@ function DayDetailPage() {
                   {detail.if_stuck}
                 </p>
               </Section>
+
+              {/* Premium-only sections. Quietly absent for free/basic
+                  so the section doesn't render an empty header. */}
+              {detail.pitfalls && detail.pitfalls.length > 0 && (
+                <Section label="common pitfalls">
+                  <ul className="flex flex-col gap-[10px]">
+                    {detail.pitfalls.map((p, i) => (
+                      <li
+                        key={i}
+                        className="flex items-baseline gap-[10px] text-[14.5px] leading-snug text-white/80"
+                      >
+                        <span className="text-white/35">!</span>
+                        <span className="flex-1">{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+
+              {detail.tools && detail.tools.length > 0 && (
+                <Section label="tools to use">
+                  <ul className="flex flex-col gap-[8px]">
+                    {detail.tools.map((t, i) => (
+                      <li
+                        key={i}
+                        className="text-[14.5px] leading-snug text-white/80"
+                      >
+                        {t}
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
             </div>
           )}
 
@@ -193,12 +235,14 @@ function DayDetailPage() {
             <DayNav
               dayNumber={dayNumber - 1}
               sessionId={sessionId}
+              month={month}
               label="← prev day"
               enabled={dayNumber > 1}
             />
             <DayNav
               dayNumber={dayNumber + 1}
               sessionId={sessionId}
+              month={month}
               label="next day →"
               enabled={dayNumber < 7}
             />
@@ -230,11 +274,13 @@ function Section({
 function DayNav({
   dayNumber,
   sessionId,
+  month,
   label,
   enabled,
 }: {
   dayNumber: number;
   sessionId: string;
+  month: number;
   label: string;
   enabled: boolean;
 }) {
@@ -255,7 +301,7 @@ function DayNav({
     <Link
       to="/todo/$day"
       params={{ day: String(dayNumber) }}
-      search={{ s: sessionId }}
+      search={{ s: sessionId, month }}
       className="text-[13px] text-white/55 transition hover:text-white"
       style={{
         fontFamily:

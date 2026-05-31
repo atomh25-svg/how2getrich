@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageLayout } from "@/components/how2getrich/PageLayout";
 import { DottedSpine } from "@/components/how2getrich/DottedSpine";
-import { generateH2GRPlan, getH2GRPlan } from "@/lib/h2gr-plan";
+import {
+  generateH2GRPlan,
+  getH2GRPlan,
+  getH2GRStatus,
+} from "@/lib/h2gr-plan";
 import { Wordmark } from "@/components/how2getrich/Wordmark";
 
 // Inline type + static fallback so this route doesn't pull the
@@ -28,6 +32,18 @@ export const Route = createFileRoute("/todo")({
   }),
   validateSearch: (search: Record<string, unknown>) => ({
     s: typeof search.s === "string" ? search.s : "",
+    // Which month's plan we're viewing. 1 = the free lead magnet.
+    // 2+ requires a paid tier and gets gated server-side.
+    month:
+      typeof search.month === "number"
+        ? Math.max(1, Math.min(12, Math.round(search.month)))
+        : typeof search.month === "string" && /^\d+$/.test(search.month)
+          ? Math.max(1, Math.min(12, parseInt(search.month, 10)))
+          : 1,
+    // Set to "1" by Stripe Checkout's success_url so we can show a
+    // welcome banner the first time the user lands here after paying.
+    subscribed:
+      typeof search.subscribed === "string" ? search.subscribed : "",
   }),
   component: TodoPlan,
 });
@@ -48,13 +64,18 @@ export const Route = createFileRoute("/todo")({
 function TodoPlan() {
   // session_id from the ?s= query param (or localStorage as a backup,
   // for users who hit /todo directly without coming from /).
-  const { s: sessionIdFromUrl } = Route.useSearch();
+  const { s: sessionIdFromUrl, month, subscribed } = Route.useSearch();
+  const navigate = useNavigate();
 
   // Echo the user's answer back at the top of the plan once we have it.
   const [tellMe, setTellMe] = useState<string>("");
   const [plan, setPlan] = useState<H2GRPlanStep[]>(STATIC_PLAN);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // Tier-aware state for the CTA + "what month am I on" header.
+  const [tier, setTier] = useState<"free" | "basic" | "premium">("free");
+  const [monthsGenerated, setMonthsGenerated] = useState<number[]>([]);
+  const [generatingNextMonth, setGeneratingNextMonth] = useState(false);
 
   useEffect(() => {
     let sessionId = sessionIdFromUrl;
@@ -77,15 +98,32 @@ function TodoPlan() {
     let cancelled = false;
     (async () => {
       try {
-        // Try the persisted plan first — same session id returns the
-        // exact plan we already paid Claude for.
+        // Kick off the tier/months lookup in parallel so the CTA is
+        // accurate as soon as the plan finishes loading.
+        const statusPromise = sessionId
+          ? getH2GRStatus({ data: { sessionId } }).catch(() => null)
+          : Promise.resolve(null);
+
+        // Try the persisted plan first — same session id + month returns
+        // the exact plan we already paid Claude for.
         if (sessionId) {
-          const cached = await getH2GRPlan({ data: { sessionId } });
+          const cached = await getH2GRPlan({ data: { sessionId, month } });
           if (cancelled) return;
           if (cached.ok && Array.isArray(cached.plan)) {
             setPlan(cached.plan);
             if (cached.input) setTellMe(cached.input);
+            await applyStatus(await statusPromise);
             setLoading(false);
+            return;
+          }
+          if (!cached.ok && cached.reason === "requires-subscription") {
+            // Hard-redirect free users who deep-linked into a paid month
+            // back to the upgrade page so they see the price before the
+            // empty-state confuses them.
+            navigate({
+              to: "/todo/upgrade",
+              search: { s: sessionId },
+            });
             return;
           }
         }
@@ -93,10 +131,18 @@ function TodoPlan() {
         // Cache miss → generate + persist. Server handles the Claude
         // call and writes to D1 for future loads.
         const res = await generateH2GRPlan({
-          data: { sessionId: sessionId ?? "", input },
+          data: { sessionId: sessionId ?? "", input, month },
         });
         if (cancelled) return;
         if (res.ok && Array.isArray(res.plan)) setPlan(res.plan);
+        else if (!res.ok && res.reason === "requires-subscription") {
+          navigate({
+            to: "/todo/upgrade",
+            search: { s: sessionId ?? "" },
+          });
+          return;
+        }
+        await applyStatus(await statusPromise);
       } catch (err) {
         if (cancelled) return;
         console.error("[todo] plan generation failed", err);
@@ -106,10 +152,56 @@ function TodoPlan() {
       }
     })();
 
+    // eslint-disable-next-line @typescript-eslint/no-inner-declarations
+    async function applyStatus(
+      status: { tier: "free" | "basic" | "premium"; monthsGenerated: number[] } | null,
+    ) {
+      if (cancelled || !status) return;
+      setTier(status.tier);
+      setMonthsGenerated(status.monthsGenerated);
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [sessionIdFromUrl]);
+  }, [sessionIdFromUrl, month, navigate]);
+
+  // Generate Month N+1 on demand (subscribers only).
+  async function onGenerateNextMonth() {
+    const sessionId =
+      sessionIdFromUrl ||
+      (typeof window !== "undefined"
+        ? window.localStorage.getItem("h2gr:sessionId") ?? ""
+        : "");
+    if (!sessionId || generatingNextMonth) return;
+    const input =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("h2gr:tellMeAboutYourself") ?? ""
+        : "";
+    setGeneratingNextMonth(true);
+    try {
+      const nextMonth = month + 1;
+      const res = await generateH2GRPlan({
+        data: { sessionId, input, month: nextMonth },
+      });
+      if (res.ok) {
+        navigate({
+          to: "/todo",
+          search: { s: sessionId, month: nextMonth },
+        });
+      } else if (res.reason === "requires-subscription") {
+        navigate({ to: "/todo/upgrade", search: { s: sessionId } });
+      } else {
+        window.alert(`Couldn't generate Month ${nextMonth}: ${res.reason}`);
+      }
+    } finally {
+      setGeneratingNextMonth(false);
+    }
+  }
+
+  const isSubscribed = tier === "basic" || tier === "premium";
+  const nextMonth = month + 1;
+  const nextMonthExists = monthsGenerated.includes(nextMonth);
 
   return (
     <PageLayout
@@ -168,7 +260,7 @@ function TodoPlan() {
                 <Link
                   to="/todo/$day"
                   params={{ day: String(i + 1) }}
-                  search={{ s: sessionIdFromUrl }}
+                  search={{ s: sessionIdFromUrl, month }}
                   className="group -mx-3 -my-1 flex cursor-pointer items-baseline gap-[8px] rounded-[4px] px-3 py-1 leading-snug transition hover:bg-white/[0.04]"
                 >
                   <span className="w-[44px] shrink-0 text-[13.2px] text-white/55 transition group-hover:text-white/80">
@@ -184,23 +276,101 @@ function TodoPlan() {
         </>
       )}
 
-      {/* Get 365 days upsell — only appears after the plan loads, so
-          we don't show a paywall while users are still waiting for
-          their tailored content. */}
+      {/* Just-paid welcome banner — shown once on the redirect from
+          Stripe Checkout (success_url includes ?subscribed=1). */}
+      {!loading && subscribed === "1" && (
+        <div
+          className="mt-[28px] rounded-[6px] border border-amber-200/30 bg-amber-200/10 px-[18px] py-[14px] text-center text-[14px] text-amber-100"
+          style={{
+            fontFamily:
+              '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+          }}
+        >
+          you&apos;re in. check your email for a sign-in link so you can
+          access this plan from any device.
+        </div>
+      )}
+
+      {/* Tier-aware bottom CTA. Three states:
+          1. Free user, month 1 → "Continue past Month 1" → /todo/upgrade
+          2. Subscribed, next month already generated → "View Month N+1"
+          3. Subscribed, next month not yet → "Generate Month N+1" (calls server) */}
       {!loading && (
         <div className="mt-[40px] flex w-full justify-center">
-          <Link
-            to="/todo/upgrade"
-            className="group inline-flex h-[80px] w-[437px] max-w-full items-center justify-center gap-[16px] rounded-[6px] bg-white text-[16px] text-black/80 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-white/40"
-            style={{
-              fontFamily:
-                '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
-            }}
-          >
-            <span>Full Plan</span>
-            <Arrow className="h-[9px] w-[44px] text-black" />
-          </Link>
+          {!isSubscribed && month === 1 ? (
+            <Link
+              to="/todo/upgrade"
+              search={{ s: sessionIdFromUrl }}
+              className="group inline-flex h-[80px] w-[437px] max-w-full items-center justify-center gap-[16px] rounded-[6px] bg-white text-[16px] text-black/80 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-white/40"
+              style={{
+                fontFamily:
+                  '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+              }}
+            >
+              <span>Continue past Month 1</span>
+              <Arrow className="h-[9px] w-[44px] text-black" />
+            </Link>
+          ) : isSubscribed && nextMonthExists ? (
+            <Link
+              to="/todo"
+              search={{ s: sessionIdFromUrl, month: nextMonth }}
+              className="group inline-flex h-[80px] w-[437px] max-w-full items-center justify-center gap-[16px] rounded-[6px] bg-white text-[16px] text-black/80 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-white/40"
+              style={{
+                fontFamily:
+                  '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+              }}
+            >
+              <span>View Month {nextMonth}</span>
+              <Arrow className="h-[9px] w-[44px] text-black" />
+            </Link>
+          ) : isSubscribed ? (
+            <button
+              type="button"
+              onClick={onGenerateNextMonth}
+              disabled={generatingNextMonth}
+              className="group inline-flex h-[80px] w-[437px] max-w-full items-center justify-center gap-[16px] rounded-[6px] bg-white text-[16px] text-black/80 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-white/40 disabled:cursor-wait disabled:opacity-60"
+              style={{
+                fontFamily:
+                  '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+              }}
+            >
+              <span>
+                {generatingNextMonth
+                  ? `generating Month ${nextMonth}…`
+                  : `Generate Month ${nextMonth}`}
+              </span>
+              {!generatingNextMonth && (
+                <Arrow className="h-[9px] w-[44px] text-black" />
+              )}
+            </button>
+          ) : (
+            /* Subscribed user viewing a paid month — show "Manage" link. */
+            <Link
+              to="/account"
+              className="text-[14px] text-white/45 transition hover:text-white/70"
+              style={{
+                fontFamily:
+                  '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+              }}
+            >
+              manage subscription →
+            </Link>
+          )}
         </div>
+      )}
+
+      {/* "Month N of …" indicator, shown only past Month 1 so the free
+          page stays uncluttered. */}
+      {!loading && month > 1 && (
+        <p
+          className="mt-[16px] text-center text-[13px] text-white/40"
+          style={{
+            fontFamily:
+              '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+          }}
+        >
+          Month {month}
+        </p>
       )}
     </PageLayout>
   );
