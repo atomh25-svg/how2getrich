@@ -1,5 +1,4 @@
 import { createStart, createMiddleware } from "@tanstack/react-start";
-import { clerkMiddleware } from "@clerk/tanstack-react-start/server";
 
 import { renderErrorPage } from "./lib/error-page";
 
@@ -18,9 +17,8 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
   }
 });
 
+// No Clerk middleware on how2getrich — the product is fully anonymous.
+// The errorMiddleware is the only request middleware we need.
 export const startInstance = createStart(() => ({
-  // Order matters: errorMiddleware (outer) wraps everything; clerkMiddleware
-  // (inner) attaches Clerk auth state to the request so server fns and
-  // route loaders can call `auth()` / `clerkClient()`.
-  requestMiddleware: [errorMiddleware, clerkMiddleware()],
+  requestMiddleware: [errorMiddleware],
 }));
