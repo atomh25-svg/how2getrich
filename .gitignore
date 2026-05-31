@@ -1,0 +1,8 @@
+node_modules
+.wrangler
+dist
+.tanstack
+.DS_Store
+.env
+.dev.vars
+*.log

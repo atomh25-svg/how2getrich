@@ -1,0 +1,288 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-glow: var(--glow);
+  --color-glow-2: var(--glow-2);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  /* Idea Takeoff redesign gold theme */
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-amber-glow: var(--amber-glow);
+}
+
+:root {
+  color-scheme: dark;
+  --radius: 0.75rem;
+
+  /* V2 cinematic warm-dark palette */
+  --background: oklch(0.16 0.012 70);
+  --foreground: oklch(0.97 0.005 80);
+  --card: oklch(0.20 0.014 70);
+  --card-foreground: oklch(0.97 0.005 80);
+  --popover: oklch(0.20 0.014 70);
+  --popover-foreground: oklch(0.97 0.005 80);
+
+  /* Primary + accent = warm gold / amber */
+  --primary: oklch(0.84 0.16 86);
+  --primary-foreground: oklch(0.18 0.02 70);
+  --secondary: oklch(0.24 0.018 70);
+  --secondary-foreground: oklch(0.97 0.005 80);
+  --muted: oklch(0.22 0.012 70);
+  --muted-foreground: oklch(0.70 0.012 80);
+  --accent: oklch(0.78 0.14 70);
+  --accent-foreground: oklch(0.18 0.02 70);
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.28 0.012 70);
+  --input: oklch(0.26 0.012 70);
+  --ring: oklch(0.84 0.16 86);
+
+  --glow: oklch(0.84 0.16 86);
+  --glow-2: oklch(0.78 0.14 70);
+
+  --gradient-primary: linear-gradient(135deg, oklch(0.86 0.17 88), oklch(0.74 0.17 60));
+  --gradient-hero:
+    radial-gradient(ellipse 80% 60% at 50% 0%, oklch(0.84 0.16 86 / 18%), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 30%, oklch(0.78 0.18 65 / 14%), transparent 65%);
+  --gradient-card: linear-gradient(160deg, oklch(0.22 0.014 70 / 80%), oklch(0.17 0.012 70 / 80%));
+  --shadow-glow: 0 0 60px -10px oklch(0.84 0.16 86 / 50%);
+  --shadow-glow-violet: 0 0 80px -15px oklch(0.78 0.14 70 / 60%);
+  --shadow-elegant: 0 20px 50px -20px oklch(0.05 0 0 / 80%);
+
+  --sidebar: oklch(0.18 0.014 70);
+  --sidebar-foreground: oklch(0.97 0.005 80);
+  --sidebar-primary: oklch(0.84 0.16 86);
+  --sidebar-primary-foreground: oklch(0.18 0.02 70);
+  --sidebar-accent: oklch(0.24 0.018 70);
+  --sidebar-accent-foreground: oklch(0.97 0.005 80);
+  --sidebar-border: oklch(0.28 0.012 70);
+  --sidebar-ring: oklch(0.84 0.16 86);
+
+  /* Idea Takeoff redesign palette (gold/amber on dark) */
+  --gold: oklch(0.84 0.16 86);
+  --gold-foreground: oklch(0.18 0.02 70);
+  --amber-glow: oklch(0.78 0.18 65);
+  --gradient-gold: linear-gradient(135deg, oklch(0.86 0.17 88), oklch(0.74 0.17 60));
+  /* Banner overlay fades into V2 warm-dark --background (oklch 0.16 0.012 70) */
+  --gradient-banner-overlay: linear-gradient(
+    to bottom,
+    oklch(0.16 0.012 70 / 0.55) 0%,
+    oklch(0.16 0.012 70 / 0.35) 30%,
+    oklch(0.16 0.012 70 / 0.85) 75%,
+    oklch(0.16 0.012 70) 90%
+  );
+  --gradient-warm-glow: radial-gradient(
+    ellipse at 50% 0%,
+    oklch(0.84 0.16 86 / 0.18),
+    transparent 60%
+  );
+  --shadow-gold: 0 10px 40px -10px oklch(0.84 0.16 86 / 0.45);
+  --shadow-card: 0 8px 30px -12px oklch(0 0 0 / 0.6);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  html,
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+  body {
+    font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+}
+
+@layer utilities {
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+  .bg-gradient-hero {
+    background: var(--gradient-hero);
+  }
+  .bg-gradient-card {
+    background: var(--gradient-card);
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .shadow-glow-violet {
+    box-shadow: var(--shadow-glow-violet);
+  }
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .glass {
+    background: oklch(0.20 0.014 70 / 50%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid oklch(0.28 0.012 70 / 50%);
+  }
+  .glow-ring {
+    box-shadow:
+      0 0 0 1px oklch(0.84 0.16 86 / 30%),
+      0 0 40px -10px oklch(0.84 0.16 86 / 50%);
+  }
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+  .animate-fade-in-up {
+    animation: fade-in-up 0.8s ease-out both;
+  }
+  .grid-bg {
+    background-image:
+      linear-gradient(oklch(1 0 0 / 4%) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(1 0 0 / 4%) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  /* Idea Takeoff redesign utilities */
+  .text-gradient-gold {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Geist — Vercel's geometric sans (variable weight). Loaded from
+     Google Fonts in __root.tsx. Use weight 700 by default for the
+     hero-scale type. */
+  .font-display {
+    font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+  }
+  /* Light brand gold across the leading glyphs, holding flat through
+     the first ~38% of the word (covers "Lau" of "Launch" / "St" of
+     "Start"), then dissolves to off-white. Deliberately skips the
+     deeper amber stop so the gold never darkens — it just brightens
+     toward white. */
+  /* Brand gold gradient that holds through "La", then transitions
+     to near-white around halfway through the "u". Same color stops
+     as --gradient-gold (used on "This"), with a third white stop
+     added so "Lau" reads as gold → light gold → white across the
+     three letters. */
+  .text-gradient-gold-fade {
+    background: linear-gradient(
+      90deg,
+      oklch(0.74 0.17 60) 0%,
+      oklch(0.86 0.17 88) 66%,
+      rgb(252 248 240) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Subtle orange gradient — same hue as oklch(0.74 0.17 60), just a
+     small lightness sweep so the word reads as one orange tone with
+     a touch of depth. */
+  .text-gradient-orange-subtle {
+    background: linear-gradient(135deg, rgb(235 150 35), rgb(210 55 18));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-gradient-gold { background: var(--gradient-gold); }
+  .bg-banner-overlay { background: var(--gradient-banner-overlay); }
+  .bg-warm-glow { background: var(--gradient-warm-glow); }
+  .shadow-gold { box-shadow: var(--shadow-gold); }
+  .shadow-card-soft { box-shadow: var(--shadow-card); }
+  /* Warm radial glow that hugs the rounded-tile alpha of the logo. Two
+     drop-shadows stack a tight inner halo with a softer outer bloom so
+     the mark feels lit-from-behind without a hard rectangle behind it. */
+  .logo-glow {
+    filter:
+      drop-shadow(0 0 4px oklch(0.86 0.17 88 / 0.28))
+      drop-shadow(0 0 10px oklch(0.78 0.18 70 / 0.18));
+  }
+  .glass-nav {
+    background: oklch(0.16 0.012 70 / 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+@keyframes pulse-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 30px oklch(0.84 0.16 86 / 50%));
+  }
+  50% {
+    filter: drop-shadow(0 0 60px oklch(0.78 0.14 70 / 70%));
+  }
+}
+/* Indeterminate progress bar used on /todo while Claude generates
+   the tailored 7-day plan. The 35%-wide sliver slides from off-screen
+   left to off-screen right and loops. */
+@keyframes h2gr-loader {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(285%); }
+}
+.animate-h2gr-loader {
+  animation: h2gr-loader 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

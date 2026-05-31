@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" width="800" height="200">
+  <defs>
+    <!-- Warm gold brand gradient (matches gradient-gold in styles.css) -->
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5c547"/>
+      <stop offset="100%" stop-color="#d8901e"/>
+    </linearGradient>
+    <!-- Soft warm shadow under the icon box, approximating shadow-gold -->
+    <filter id="goldGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Icon box: rounded square with gold gradient + soft glow -->
+  <g transform="translate(40, 50)">
+    <rect x="0" y="0" width="100" height="100" rx="18" ry="18" fill="url(#goldGradient)" filter="url(#goldGlow)"/>
+    <!-- RocketGlyph paths (custom rocket with tightened contrail),
+         rotated -45 degrees, scaled and centered inside the box. -->
+    <g transform="translate(50, 50) rotate(-45) translate(-30, -30) scale(2.5)"
+       stroke="#3a2a08" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M5 16c-1.1 1.1-1.6 4.3-1.6 4.3s2.95-.3 4.15-1.6c.55-.65.55-1.65-.07-2.27a1.7 1.7 0 0 0-2.48-.43z"/>
+      <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+      <path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/>
+      <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/>
+    </g>
+  </g>
+
+  <!-- Wordmark: "LaunchFly" white + ".io" gold -->
+  <text x="170" y="125"
+        font-family="-apple-system, 'SF Pro Display', 'Inter', 'Segoe UI', system-ui, sans-serif"
+        font-size="64"
+        font-weight="600"
+        letter-spacing="-1.5">
+    <tspan fill="#ffffff">LaunchFly</tspan><tspan fill="url(#goldGradient)">.io</tspan>
+  </text>
+</svg>

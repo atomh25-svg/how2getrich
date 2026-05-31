@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "how2getrich-app",
+  "account_id": "c60ee0d9c57d8db42105a82f693c03bd",
+  "compatibility_date": "2025-09-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "src/server.ts",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "how2getrich-db",
+      "database_id": "c86d8247-5d09-4c70-9219-3c7289654813"
+    }
+  ],
+  "routes": [
+    { "pattern": "how2getrich.online", "custom_domain": true },
+    { "pattern": "www.how2getrich.online", "custom_domain": true }
+  ]
+}
