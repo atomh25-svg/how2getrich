@@ -1,12 +1,8 @@
-import { useState } from "react";
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { env } from "cloudflare:workers";
-import {
-  SignInButton,
-  Show,
-  useUser,
-} from "@clerk/tanstack-react-start";
+import { SignInButton, useUser } from "@clerk/tanstack-react-start";
 
 import { PageLayout } from "@/components/how2getrich/PageLayout";
 import { RightRailWithMoreInfo } from "./todo";
@@ -36,8 +32,6 @@ const startCheckout = createServerFn({ method: "POST" })
     async ({
       data,
     }): Promise<{ ok: true; url: string } | { ok: false; reason: string }> => {
-      // Must be Clerk-signed-in to subscribe. The client gates the
-      // button too, but server-side check is the source of truth.
       const user = await getCurrentUser(env as unknown as { DB?: D1Database });
       if (!user) return { ok: false, reason: "not-signed-in" };
 
@@ -50,12 +44,23 @@ const startCheckout = createServerFn({ method: "POST" })
           sessionId: data.sessionId,
           existingCustomerId: user.stripeCustomerId ?? undefined,
           successUrl: `${origin}${data.returnPath}?subscribed=1`,
-          cancelUrl: `${origin}/todo_/upgrade?s=${encodeURIComponent(data.sessionId)}`,
+          cancelUrl: `${origin}/todo/upgrade?s=${encodeURIComponent(data.sessionId)}`,
         });
         return { ok: true, url };
       } catch (err) {
-        console.error("[checkout] failed:", err);
-        return { ok: false, reason: "stripe-error" };
+        // Surface the actual Stripe error message back to the client so
+        // the user-facing alert is diagnostic instead of generic. Stripe
+        // errors look like: "No such price: 'price_xxx'", "Invalid API
+        // Key provided", etc. — much more useful than "stripe-error".
+        console.error(
+          "[checkout] failed:",
+          err instanceof Error
+            ? `${err.name}: ${err.message}\n${err.stack}`
+            : String(err),
+        );
+        const message =
+          err instanceof Error ? err.message : String(err);
+        return { ok: false, reason: `stripe: ${message.slice(0, 200)}` };
       }
     },
   );
@@ -73,6 +78,13 @@ export const Route = createFileRoute("/todo_/upgrade")({
   }),
   validateSearch: (search: Record<string, unknown>) => ({
     s: typeof search.s === "string" ? search.s : "",
+    // After Clerk sign-in we redirect back here with ?intent=<tier> so
+    // we can auto-resume the checkout that the user was trying to
+    // start before they got bounced into the sign-in modal.
+    intent:
+      search.intent === "basic" || search.intent === "premium"
+        ? search.intent
+        : "",
   }),
   component: TodoPaywall,
 });
@@ -96,18 +108,29 @@ const TIERS: Tier[] = [
 ];
 
 function TodoPaywall() {
-  const { s: sessionIdFromUrl } = useSearch({ from: "/todo_/upgrade" });
-  const { isSignedIn } = useUser();
+  const { s: sessionIdFromUrl, intent } = useSearch({
+    from: "/todo_/upgrade",
+  });
+  const { isSignedIn, isLoaded } = useUser();
+  const navigate = useNavigate();
   const [pending, setPending] = useState<Tier["id"] | null>(null);
+  const autoResumed = useRef(false);
 
-  async function onSubscribe(tier: Tier["id"]) {
-    if (pending) return;
-    let sessionId = sessionIdFromUrl;
-    if (!sessionId && typeof window !== "undefined") {
-      sessionId =
+  // Resolve / lazy-create the anonymous session_id so we can stamp it
+  // into Stripe metadata + use it in URLs.
+  function resolveSessionId(): string {
+    let sid = sessionIdFromUrl;
+    if (!sid && typeof window !== "undefined") {
+      sid =
         window.localStorage.getItem("h2gr.sessionId") ?? crypto.randomUUID();
-      window.localStorage.setItem("h2gr.sessionId", sessionId);
+      window.localStorage.setItem("h2gr.sessionId", sid);
     }
+    return sid ?? "";
+  }
+
+  async function openCheckout(tier: Tier["id"]) {
+    if (pending) return;
+    const sessionId = resolveSessionId();
     setPending(tier);
     try {
       const result = await startCheckout({
@@ -116,18 +139,36 @@ function TodoPaywall() {
       if (result.ok) {
         window.location.href = result.url;
       } else if (result.reason === "not-signed-in") {
+        // Shouldn't happen — UI gates this — but surface it cleanly.
         window.alert(
-          "Please sign in first — the Sign In button is at the top of this card.",
+          "Sign in first — click a plan below and we'll prompt you.",
         );
       } else {
-        window.alert(
-          `Couldn't open checkout: ${result.reason}. Try again in a moment.`,
-        );
+        window.alert(`Couldn't open checkout: ${result.reason}`);
       }
     } finally {
       setPending(null);
     }
   }
+
+  // Auto-resume checkout after the user returns from Clerk sign-in.
+  // The SignInButton's forceRedirectUrl puts ?intent=<tier> in the URL;
+  // once Clerk's `isLoaded && isSignedIn` flip true, fire the checkout
+  // and clean the URL so refreshing doesn't loop.
+  useEffect(() => {
+    if (autoResumed.current) return;
+    if (!isLoaded || !isSignedIn) return;
+    if (intent !== "basic" && intent !== "premium") return;
+    autoResumed.current = true;
+    // Strip ?intent from URL so a refresh doesn't re-trigger.
+    navigate({
+      to: "/todo/upgrade",
+      search: { s: sessionIdFromUrl ?? "" },
+      replace: true,
+    });
+    openCheckout(intent);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, isSignedIn, intent]);
 
   return (
     <PageLayout rightRail={<RightRailWithMoreInfo />}>
@@ -147,60 +188,56 @@ function TodoPaywall() {
             Unlock Full Plan
           </h2>
 
-          {/* Auth gate: if signed out, show one big "Sign in with Google"
-              button instead of the tier list. The Subscribe buttons are
-              meaningless until Clerk has an email to pre-fill checkout. */}
-          <Show when="signed-out">
-            <div className="mt-[40px] flex w-full flex-col items-center gap-[12px]">
-              <p className="text-center text-[14px] text-black/60">
-                Sign in first — we&apos;ll bill you under that account.
-              </p>
-              <SignInButton mode="modal">
-                <button
-                  type="button"
-                  className="rounded-[6px] bg-black px-[24px] py-[10px] text-[14px] text-white transition hover:bg-black/85"
-                >
-                  Sign in to continue
-                </button>
-              </SignInButton>
-            </div>
-          </Show>
-
-          <Show when="signed-in">
-            <ul className="mt-[52px] flex w-full flex-col gap-[52px]">
-              {TIERS.map((tier) => (
-                <li key={tier.id}>
-                  <TierBlock
-                    tier={tier}
-                    pending={pending === tier.id}
-                    disabled={pending != null || !isSignedIn}
-                    onSubscribe={() => onSubscribe(tier.id)}
-                  />
-                </li>
-              ))}
-            </ul>
-          </Show>
+          {/* Tier cards are ALWAYS visible. Click handler branches by
+              auth state — signed-out users get the Clerk sign-in modal
+              (with redirect back here + intent=<tier> so we auto-resume),
+              signed-in users go straight to Stripe Checkout. */}
+          <ul className="mt-[52px] flex w-full flex-col gap-[52px]">
+            {TIERS.map((tier) => (
+              <li key={tier.id}>
+                <TierRow
+                  tier={tier}
+                  isSignedIn={Boolean(isSignedIn)}
+                  pending={pending === tier.id}
+                  disabled={pending != null}
+                  sessionId={sessionIdFromUrl}
+                  onSubscribe={() => openCheckout(tier.id)}
+                />
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </PageLayout>
   );
 }
 
-function TierBlock({
+/**
+ * One tier row. When signed-in, behaves as a normal button calling
+ * onSubscribe. When signed-out, the button is wrapped in <SignInButton>
+ * so the click opens Clerk's modal — and forceRedirectUrl brings the
+ * user back to /todo/upgrade?intent=<tier>, which then auto-fires
+ * checkout via the effect in the parent.
+ */
+function TierRow({
   tier,
+  isSignedIn,
   pending,
   disabled,
+  sessionId,
   onSubscribe,
 }: {
   tier: Tier;
+  isSignedIn: boolean;
   pending: boolean;
   disabled: boolean;
+  sessionId: string;
   onSubscribe: () => void;
 }) {
-  return (
+  const inner = (
     <button
       type="button"
-      onClick={onSubscribe}
+      onClick={isSignedIn ? onSubscribe : undefined}
       disabled={disabled}
       className="group block w-full cursor-pointer text-center transition hover:opacity-80 focus:outline-none focus-visible:underline disabled:cursor-wait disabled:opacity-60"
     >
@@ -214,5 +251,21 @@ function TierBlock({
         {pending ? "opening checkout..." : tier.price}
       </div>
     </button>
+  );
+
+  if (isSignedIn) return inner;
+
+  // Build the post-sign-in redirect URL so Clerk brings the user back
+  // to this page with the intent baked in. Absolute path; Clerk wants
+  // a relative URL OR a fully-qualified URL on the same origin.
+  const redirectUrl = `/todo/upgrade?s=${encodeURIComponent(sessionId)}&intent=${tier.id}`;
+  return (
+    <SignInButton
+      mode="modal"
+      forceRedirectUrl={redirectUrl}
+      signUpForceRedirectUrl={redirectUrl}
+    >
+      {inner}
+    </SignInButton>
   );
 }
