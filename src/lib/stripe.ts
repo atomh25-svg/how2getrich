@@ -83,18 +83,16 @@ export async function createCheckoutSession(args: CheckoutArgs): Promise<string>
     line_items: [{ price: priceIdForTier(args.tier), quantity: 1 }],
     success_url: args.successUrl,
     cancel_url: args.cancelUrl,
-    // If we already have a Stripe Customer for this user, reuse it
-    // (lets them keep saved payment methods + billing history). On a
-    // first-time sub there's no customer yet, so we let Stripe create
-    // one and (when we know it) pre-fill the email collection box.
+    // Subscription mode always creates a Customer automatically —
+    // `customer_creation` is REJECTED here (it only applies to
+    // one-time `payment` mode). So for a first-time sub we just
+    // pre-fill the email (if known) and Stripe makes the Customer.
+    // For a resub, reuse the existing Customer for billing history.
     ...(args.existingCustomerId
       ? { customer: args.existingCustomerId }
-      : {
-          customer_creation: "always",
-          // Stripe rejects empty-string email; omit the field if we
-          // don't have one and let Checkout collect it on the page.
-          ...(args.email ? { customer_email: args.email } : {}),
-        }),
+      : args.email
+        ? { customer_email: args.email }
+        : {}),
     // Plumb our identity + intent through to the webhook.
     client_reference_id: args.sessionId,
     metadata: {
