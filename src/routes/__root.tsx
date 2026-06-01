@@ -144,6 +144,12 @@ function RootComponent() {
   return (
     <ClerkProvider
       publishableKey={CLERK_PUBLISHABLE_KEY}
+      // After OAuth (Google) completes, send the user back to the
+      // homepage. Without these set, Clerk dev mode bounces through
+      // hosted callback URLs that don't exist on this app and our
+      // 500 ErrorComponent renders.
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/"
       appearance={{
         variables: {
           colorPrimary: "rgb(214, 166, 81)",         // warm gold

@@ -111,9 +111,31 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
+      // TEMP: dump 500 bodies for handshake debugging
+      if (response.status >= 500) {
+        try {
+          const body = await response.clone().text();
+          console.error(
+            "[server] >=500 response",
+            "status:",
+            response.status,
+            "url:",
+            request.url,
+            "body:",
+            body.slice(0, 600),
+          );
+        } catch {}
+      }
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
-      console.error(error);
+      console.error(
+        "[server] fetch threw — url:",
+        request.url,
+        "err:",
+        error instanceof Error
+          ? `${error.name}: ${error.message}\n${error.stack}`
+          : String(error),
+      );
       return brandedErrorResponse();
     }
   },

@@ -77,10 +77,12 @@ export async function getCurrentUser(env: Env): Promise<CurrentUser | null> {
   }
 
   // Signed in but never paid → fetch email from Clerk so the caller has
-  // something to use for Stripe Checkout pre-fill.
+  // something to use for Stripe Checkout pre-fill. If the Clerk
+  // lookup fails (network, transient), fall through with an empty
+  // email rather than returning null — the user IS signed in, and
+  // Stripe Checkout can collect the email itself if pre-fill is empty.
   if (!row) {
-    const email = await fetchClerkPrimaryEmail(clerkUserId);
-    if (!email) return null; // Clerk lookup failed; refuse rather than guess
+    const email = (await fetchClerkPrimaryEmail(clerkUserId)) ?? "";
     return {
       clerkUserId,
       email,

@@ -86,10 +86,15 @@ export async function createCheckoutSession(args: CheckoutArgs): Promise<string>
     // If we already have a Stripe Customer for this user, reuse it
     // (lets them keep saved payment methods + billing history). On a
     // first-time sub there's no customer yet, so we let Stripe create
-    // one and pre-fill the email collection box.
+    // one and (when we know it) pre-fill the email collection box.
     ...(args.existingCustomerId
       ? { customer: args.existingCustomerId }
-      : { customer_creation: "always", customer_email: args.email }),
+      : {
+          customer_creation: "always",
+          // Stripe rejects empty-string email; omit the field if we
+          // don't have one and let Checkout collect it on the page.
+          ...(args.email ? { customer_email: args.email } : {}),
+        }),
     // Plumb our identity + intent through to the webhook.
     client_reference_id: args.sessionId,
     metadata: {
