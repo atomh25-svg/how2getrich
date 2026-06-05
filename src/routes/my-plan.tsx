@@ -212,7 +212,7 @@ function MyPlan() {
         <>
           <Wordmark />
           <div className="mt-[64px] flex w-full flex-col items-center justify-center">
-            <RingLoader label="loading your plan…" durationMs={4000} />
+            <RingLoader label="loading your plan…" />
           </div>
         </>
       ) : (
@@ -293,9 +293,8 @@ function MyPlan() {
             {generatingNext ? (
               <RingLoader
                 label="generating the next month…"
-                durationMs={5000}
-                size={64}
-                strokeWidth={5}
+                size={42}
+                strokeWidth={3}
               />
             ) : (
               <button

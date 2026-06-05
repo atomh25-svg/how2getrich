@@ -258,7 +258,7 @@ Output format (HARD rules):
 - Output ONLY a JSON array. No prose before or after. No markdown code fences.
 - The array must contain EXACTLY 30 step objects, ordered day 1 → day 30.
 - Each step matches this shape: { "day": "day N", "title": string, "body": "" }
-- "title" is ONE specific sentence, 12-22 words, 80-140 characters. The sentence names a concrete action AND the specific tool, customer, subreddit, or dollar amount that makes it executable. Plain prose — no markdown bullets, no parenthetical asides, no "you should…" prefix.
+- "title" is ONE punchy action sentence, 8-14 words, 50-90 characters MAX. The sentence names a concrete action AND the specific tool, customer, subreddit, or dollar amount that makes it executable. Plain prose — no markdown bullets, no parenthetical asides, no "you should…" prefix. Cut adverbs, cut articles where it still reads natural, cut "and then…" clauses. Telegraphic > flowery.
 - "body" must be the empty string "". Do NOT put a separate descriptor here — everything goes in "title".
 
 Personalization rules — the BIGGEST source of value:
@@ -430,42 +430,42 @@ Generate their tailored ${month > 1 ? `Month ${month}` : ""} 30-day plan as JSON
 export function staticSevenDayPlan(): H2GRPlanStep[] {
   return [
     // Phase 1 — Validate & shape the offer
-    { day: "day 1", title: "Choose one boring skill people already pay for", body: "" },
-    { day: "day 2", title: "Pick one specific customer with a painful problem", body: "" },
-    { day: "day 3", title: "Find 20 examples of people already making money this way", body: "" },
+    { day: "day 1", title: "Pick one boring skill people pay for", body: "" },
+    { day: "day 2", title: "Pick one specific painful customer", body: "" },
+    { day: "day 3", title: "Find 20 people already getting paid", body: "" },
     { day: "day 4", title: "Write the dumbest possible offer", body: "" },
-    { day: "day 5", title: "Make a one-page Carrd site explaining the offer", body: "" },
-    { day: "day 6", title: "Create one tiny sample result (mockup, demo, screenshot)", body: "" },
+    { day: "day 5", title: "Build a one-page Carrd site", body: "" },
+    { day: "day 6", title: "Make one tiny sample result", body: "" },
     { day: "day 7", title: "Send the offer to 25 real people", body: "" },
 
     // Phase 2 — First paying customer
-    { day: "day 8", title: "Re-read the 25 responses; cut what nobody wanted", body: "" },
-    { day: "day 9", title: "Follow up with the 3 warmest 'maybe' leads from day 7", body: "" },
-    { day: "day 10", title: "Productize what people said yes to — fixed scope, fixed price", body: "" },
-    { day: "day 11", title: "Ship one small upgrade to the offer based on real feedback", body: "" },
-    { day: "day 12", title: "Send the new offer to another 25 humans", body: "" },
-    { day: "day 13", title: "Ask your first paying customer for a 2-sentence testimonial", body: "" },
-    { day: "day 14", title: "Post your first build-in-public update on X or LinkedIn", body: "" },
+    { day: "day 8", title: "Re-read the 25 replies, cut the noise", body: "" },
+    { day: "day 9", title: "Follow up with the 3 warmest maybes", body: "" },
+    { day: "day 10", title: "Productize: fixed scope, fixed price", body: "" },
+    { day: "day 11", title: "Ship one upgrade based on feedback", body: "" },
+    { day: "day 12", title: "Send the new offer to 25 more", body: "" },
+    { day: "day 13", title: "Ask your first paying customer for a quote", body: "" },
+    { day: "day 14", title: "Post your first build-in-public update", body: "" },
 
     // Phase 3 — Repeat & raise prices
-    { day: "day 15", title: "Reach out to 25 people in a SECOND niche segment", body: "" },
-    { day: "day 16", title: "Land customer #2 — same offer, same script", body: "" },
-    { day: "day 17", title: "Write a 'how I got my first $X' post for a specific subreddit", body: "" },
-    { day: "day 18", title: "Land customer #3 — proves the offer isn't a fluke", body: "" },
-    { day: "day 19", title: "Raise your price 20% on the next inbound lead", body: "" },
-    { day: "day 20", title: "Set up Stripe Payment Link or Gumroad — no more invoices", body: "" },
-    { day: "day 21", title: "Automate the most annoying step (Zapier, n8n, or a quick script)", body: "" },
+    { day: "day 15", title: "Reach 25 people in a second niche", body: "" },
+    { day: "day 16", title: "Land customer #2, same script", body: "" },
+    { day: "day 17", title: "Post 'how I got my first $X' to a subreddit", body: "" },
+    { day: "day 18", title: "Land customer #3, kill the fluke fear", body: "" },
+    { day: "day 19", title: "Raise prices 20% on the next lead", body: "" },
+    { day: "day 20", title: "Set up Stripe Payment Link or Gumroad", body: "" },
+    { day: "day 21", title: "Automate the most annoying step", body: "" },
 
     // Phase 4 — Compound & systematize
-    { day: "day 22", title: "Launch in one new distribution channel (Reddit, LinkedIn DMs, niche newsletter)", body: "" },
-    { day: "day 23", title: "Start a tiny email list with ConvertKit's free tier — 1 form, 1 welcome email", body: "" },
-    { day: "day 24", title: "Batch-create one week of social content in a single session", body: "" },
-    { day: "day 25", title: "Add a referral mechanic — 'introduce me to a friend, get $X off'", body: "" },
-    { day: "day 26", title: "Reach out to 5 micro-influencers in the niche with a free trial", body: "" },
-    { day: "day 27", title: "Document your full process so customer #10 onboards without you", body: "" },
-    { day: "day 28", title: "Audit your funnel — where are people dropping off?", body: "" },
-    { day: "day 29", title: "Write the month-1 retrospective post (real numbers)", body: "" },
-    { day: "day 30", title: "Decide: KEEP what worked, KILL what didn't, DOUBLE-DOWN next month", body: "" },
+    { day: "day 22", title: "Launch in one new distribution channel", body: "" },
+    { day: "day 23", title: "Start a tiny email list on ConvertKit", body: "" },
+    { day: "day 24", title: "Batch a week of social content", body: "" },
+    { day: "day 25", title: "Add a referral mechanic", body: "" },
+    { day: "day 26", title: "DM 5 micro-influencers in the niche", body: "" },
+    { day: "day 27", title: "Document onboarding for customer #10", body: "" },
+    { day: "day 28", title: "Audit where people drop off the funnel", body: "" },
+    { day: "day 29", title: "Write your month-1 retrospective post", body: "" },
+    { day: "day 30", title: "Decide: KEEP, KILL, or DOUBLE-DOWN", body: "" },
   ];
 }
 
