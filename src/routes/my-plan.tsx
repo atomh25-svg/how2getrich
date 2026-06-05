@@ -340,6 +340,10 @@ function MyPlan() {
               manage subscription →
             </Link>
           </div>
+
+          {/* Bottom spacer — keeps content above the fixed-position
+              disclaimer footer at the viewport bottom. */}
+          <div className="h-[72px] w-full shrink-0" aria-hidden />
         </>
       )}
     </PageLayout>

@@ -118,6 +118,10 @@ function TodoPlan() {
   // in-memory only (not persisted) until they click "Choose This Plan".
   const [previewMode, setPreviewMode] = useState(false);
   const [committingChoice, setCommittingChoice] = useState(false);
+  // Styled confirm modal (replaces native window.confirm) — only opens
+  // when the paid user clicks "Choose This Plan" so they explicitly
+  // re-confirm before we overwrite their existing plan.
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
   useEffect(() => {
     let sessionId = sessionIdFromUrl;
@@ -388,51 +392,10 @@ function TodoPlan() {
             preview. Show the upgrade paywall. */}
       {!loading && previewMode && (
         <div className="mt-[40px] flex w-full flex-col items-center gap-[14px]">
-          <p
-            className="max-w-[437px] text-center text-[13.6px] leading-snug text-amber-200/90"
-            style={{
-              fontFamily:
-                '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
-            }}
-          >
-            heads up: choosing this plan will <strong>replace</strong> your
-            current plan. your old plan and all generated months will be
-            erased.
-          </p>
           <button
             type="button"
             disabled={committingChoice}
-            onClick={async () => {
-              const sid =
-                sessionIdFromUrl ||
-                (typeof window !== "undefined"
-                  ? window.localStorage.getItem("h2gr:sessionId") ?? ""
-                  : "");
-              const input =
-                typeof window !== "undefined"
-                  ? window.localStorage.getItem("h2gr:tellMeAboutYourself") ?? ""
-                  : "";
-              if (!sid || !input || !plan.length) return;
-              if (
-                !window.confirm(
-                  "Replace your current plan with this new one? Your existing plan and any extra months will be erased.",
-                )
-              )
-                return;
-              setCommittingChoice(true);
-              try {
-                const res = await replaceCurrentPlan({
-                  data: { sessionId: sid, input, plan },
-                });
-                if (res.ok) {
-                  navigate({ to: "/my-plan" });
-                } else {
-                  window.alert(`Couldn't switch plans: ${res.reason}`);
-                }
-              } finally {
-                setCommittingChoice(false);
-              }
-            }}
+            onClick={() => setConfirmModalOpen(true)}
             className="group inline-flex h-[80px] w-[437px] max-w-full items-center justify-center gap-[16px] rounded-[6px] bg-white text-[16px] text-black/80 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-white/40 disabled:cursor-wait disabled:opacity-60"
             style={{
               fontFamily:
@@ -490,6 +453,85 @@ function TodoPlan() {
         >
           Month {month}
         </p>
+      )}
+
+      {/* Bottom spacer — keeps the CTA + "keep my current plan" link
+          from sitting on top of the fixed-position disclaimer footer. */}
+      <div className="h-[72px] w-full shrink-0" aria-hidden />
+
+      {/* "Choose This Plan" confirmation modal. Shown only when the
+          user clicks the button (replaces the inline amber warning).
+          Centered overlay with backdrop click-to-dismiss. */}
+      {confirmModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+          onClick={() => {
+            if (!committingChoice) setConfirmModalOpen(false);
+          }}
+        >
+          <div
+            className="w-[420px] max-w-full rounded-[8px] border border-amber-200/40 bg-[#0a0a0a] p-[24px] text-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              fontFamily:
+                '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+            }}
+          >
+            <h3 className="text-[18px] leading-tight text-amber-200">
+              heads up
+            </h3>
+            <p className="mt-[12px] text-[14px] leading-snug text-white/80">
+              choosing this plan will <strong>replace</strong> your current
+              plan. your old plan and any generated months will be erased.
+            </p>
+            <p className="mt-[8px] text-[13px] leading-snug text-white/55">
+              this cannot be undone. continue?
+            </p>
+            <div className="mt-[20px] flex justify-end gap-[10px]">
+              <button
+                type="button"
+                disabled={committingChoice}
+                onClick={() => setConfirmModalOpen(false)}
+                className="inline-flex h-[40px] items-center rounded-[4px] border border-white/20 px-[16px] text-[14px] text-white/80 transition hover:bg-white/10 disabled:cursor-wait disabled:opacity-50"
+              >
+                cancel
+              </button>
+              <button
+                type="button"
+                disabled={committingChoice}
+                onClick={async () => {
+                  const sid =
+                    sessionIdFromUrl ||
+                    (typeof window !== "undefined"
+                      ? window.localStorage.getItem("h2gr:sessionId") ?? ""
+                      : "");
+                  const input =
+                    typeof window !== "undefined"
+                      ? window.localStorage.getItem("h2gr:tellMeAboutYourself") ?? ""
+                      : "";
+                  if (!sid || !input || !plan.length) return;
+                  setCommittingChoice(true);
+                  try {
+                    const res = await replaceCurrentPlan({
+                      data: { sessionId: sid, input, plan },
+                    });
+                    if (res.ok) {
+                      setConfirmModalOpen(false);
+                      navigate({ to: "/my-plan" });
+                    } else {
+                      window.alert(`Couldn't switch plans: ${res.reason}`);
+                    }
+                  } finally {
+                    setCommittingChoice(false);
+                  }
+                }}
+                className="inline-flex h-[40px] items-center rounded-[4px] bg-amber-200 px-[16px] text-[14px] font-medium text-black transition hover:bg-amber-100 disabled:cursor-wait disabled:opacity-60"
+              >
+                {committingChoice ? "switching…" : "yes, replace"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </PageLayout>
   );
