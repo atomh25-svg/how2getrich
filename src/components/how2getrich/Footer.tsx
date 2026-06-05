@@ -1,18 +1,14 @@
+import { Link } from "@tanstack/react-router";
+
 /**
  * Legal disclaimer footer shown on every how2getrich screen.
  *
  * Fixed at the bottom of the viewport so it survives any layout,
- * dim and small (10px / 30% white) so it doesn't fight the
- * minimalist composition, but visible enough to count as a
- * "clear and conspicuous" disclosure under FTC guidance.
- *
- * Covers the bare-minimum legal points for a get-rich-branded
- * paid product:
- *   - "not financial advice"  (no SEC/fiduciary exposure)
- *   - "results vary wildly"   (FTC Operation Income Illusion)
- *   - "plans are AI-generated" (LLM-output disclosure)
- *   - "your money, your choice" (user takes responsibility)
- *   - copyright + year
+ * dim and small so it doesn't fight the minimalist composition but
+ * visible enough to count as a "clear and conspicuous" disclosure
+ * under FTC guidance. The links to Privacy / Terms / Refunds are
+ * pointer-events-auto'd individually so they remain clickable while
+ * the rest of the footer stays click-through.
  */
 export function Footer() {
   return (
@@ -28,7 +24,34 @@ export function Footer() {
         &gt; not financial advice · results vary wildly · plans are AI-generated · your money, your choice
       </p>
       <p className="mt-[2px] text-[10px] leading-tight text-white/25">
-        © 2026 how2getrich.online
+        © 2026 how2getrich.online ·{" "}
+        <Link
+          to="/privacy"
+          className="pointer-events-auto underline-offset-2 transition hover:text-white/50 hover:underline"
+        >
+          privacy
+        </Link>{" "}
+        ·{" "}
+        <Link
+          to="/terms"
+          className="pointer-events-auto underline-offset-2 transition hover:text-white/50 hover:underline"
+        >
+          terms
+        </Link>{" "}
+        ·{" "}
+        <Link
+          to="/refunds"
+          className="pointer-events-auto underline-offset-2 transition hover:text-white/50 hover:underline"
+        >
+          refunds
+        </Link>{" "}
+        ·{" "}
+        <a
+          href="mailto:support@how2getrich.online"
+          className="pointer-events-auto underline-offset-2 transition hover:text-white/50 hover:underline"
+        >
+          contact
+        </a>
       </p>
     </footer>
   );

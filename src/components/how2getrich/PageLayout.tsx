@@ -26,19 +26,37 @@ export function PageLayout({
   rightRail?: ReactNode;
 }) {
   return (
-    <main className="relative min-h-screen w-full overflow-hidden bg-black text-white">
-      {/* Stage column is a flex container with a fixed minimum height
-          so its children's flex-1 (e.g. the dotted spine) actually
-          stretches to fill the page instead of collapsing to its
-          min-height. */}
-      <div className="relative mx-auto flex w-[540px] max-w-full flex-col items-center px-6 pt-[48px]">
-        {/* Sidebar — anchored to the stage's left edge with a 55px
-            gap. The stage stays perfectly viewport-centered because
-            the sidebar is absolutely positioned outside the flow. */}
-        <div className="absolute right-full top-[186px] mr-[25px] hidden md:block">
-          <Sidebar />
+    <main className="relative min-h-screen w-full overflow-x-hidden bg-black text-white">
+      {/* Mobile-responsive wrapper: the whole stage is laid out at a
+          540px reference width (the design width) and scaled
+          proportionally on narrower viewports via transform:scale.
+          Every translate-px / fontSize-px inside stays in its
+          hand-tuned relative position — the whole composition just
+          shrinks as a single unit, which is the same trick we use on
+          launchfly. Floor at 0.5 so very narrow screens still read.
+          Origin top-center so the page anchors to the top edge. */}
+      <div
+        className="relative mx-auto"
+        style={{
+          width: "min(540px, 100vw)",
+          transform: "scale(clamp(0.5, calc(100vw / 540), 1))",
+          transformOrigin: "top center",
+        }}
+      >
+        {/* Stage column is a flex container with a fixed minimum height
+            so its children's flex-1 (e.g. the dotted spine) actually
+            stretches to fill the page instead of collapsing to its
+            min-height. */}
+        <div className="relative mx-auto flex w-[540px] max-w-full flex-col items-center px-6 pt-[48px]">
+          {/* Sidebar — anchored to the stage's left edge with a 55px
+              gap. The stage stays perfectly viewport-centered because
+              the sidebar is absolutely positioned outside the flow.
+              `md:block` keeps it hidden on phones (overlap risk). */}
+          <div className="absolute right-full top-[186px] mr-[25px] hidden md:block">
+            <Sidebar />
+          </div>
+          {children}
         </div>
-        {children}
       </div>
       {rightRail}
       <Footer />

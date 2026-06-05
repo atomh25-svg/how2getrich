@@ -19,21 +19,32 @@ const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as
 // shrinking into a sea of transparent padding.
 import moneyFaviconUrl from "../assets/money-favicon.png?url";
 
+// Themed 404/error pages — match the black + VT323 + green-accent
+// brand instead of generic tailwind grays. Both pages stand on their
+// own (no PageLayout/sidebar) since sidebar nav routes could be the
+// thing that's broken.
+const FONT =
+  '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace';
+
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div
+      className="flex min-h-screen items-center justify-center bg-black px-4 text-white"
+      style={{ fontFamily: FONT }}
+    >
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+        <h1 className="text-[80px] leading-none text-emerald-400/90">404</h1>
+        <h2 className="mt-[12px] text-[20px] text-white/90">page not found</h2>
+        <p className="mt-[10px] text-[14px] text-white/55">
+          the page you're looking for doesn't exist (or maybe it does, just
+          not where you typed). try the home page.
         </p>
-        <div className="mt-6">
+        <div className="mt-[20px]">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex h-[44px] items-center justify-center rounded-[4px] bg-emerald-400/20 px-[20px] text-[14px] text-emerald-300 transition hover:bg-emerald-400/30 hover:text-emerald-100"
           >
-            Go home
+            go home →
           </Link>
         </div>
       </div>
@@ -46,29 +57,40 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div
+      className="flex min-h-screen items-center justify-center bg-black px-4 text-white"
+      style={{ fontFamily: FONT }}
+    >
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+        <h1 className="text-[22px] tracking-tight text-white">
+          something broke
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <p className="mt-[10px] text-[14px] text-white/55">
+          not your fault. try refreshing or head back home — if it keeps
+          happening, email{" "}
+          <a
+            href="mailto:support@how2getrich.online"
+            className="text-emerald-400 transition hover:text-emerald-200"
+          >
+            support@how2getrich.online
+          </a>
+          .
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <div className="mt-[20px] flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex h-[44px] items-center justify-center rounded-[4px] bg-emerald-400/20 px-[20px] text-[14px] text-emerald-300 transition hover:bg-emerald-400/30 hover:text-emerald-100"
           >
-            Try again
+            try again
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex h-[44px] items-center justify-center rounded-[4px] border border-white/20 px-[20px] text-[14px] text-white/85 transition hover:bg-white/10"
           >
-            Go home
+            go home
           </a>
         </div>
       </div>
@@ -81,14 +103,46 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "how2getrich.online — your tailored 30-day plan" },
+      {
+        name: "description",
+        content:
+          "Tell us about you. AI hands you a real 30-day plan to start making money — no guru fluff. $9.99/mo, cancel anytime.",
+      },
+      { name: "author", content: "how2getrich.online" },
+      // Open Graph — drives link-preview cards in iMessage, Slack,
+      // Discord, WhatsApp, LinkedIn, Telegram, X feed posts.
+      { property: "og:title", content: "how2getrich.online" },
+      {
+        property: "og:description",
+        content:
+          "Tell us about you. AI hands you a real 30-day plan to start making money.",
+      },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { property: "og:url", content: "https://how2getrich.online" },
+      {
+        property: "og:image",
+        content: "https://how2getrich.online/og-image.png",
+      },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      // Twitter / X
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "how2getrich.online" },
+      {
+        name: "twitter:description",
+        content:
+          "Tell us about you. AI hands you a real 30-day plan to start making money.",
+      },
+      {
+        name: "twitter:image",
+        content: "https://how2getrich.online/og-image.png",
+      },
+      // Crawl / index defaults — individual pages can override.
+      { name: "robots", content: "index, follow" },
+      // Theme color shows up in mobile address bars (Safari iOS,
+      // Chrome Android) and PWA install screens.
+      { name: "theme-color", content: "#000000" },
     ],
     links: [
       {

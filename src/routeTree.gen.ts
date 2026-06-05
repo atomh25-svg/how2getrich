@@ -10,6 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TodoRouteImport } from './routes/todo'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as RefundsRouteImport } from './routes/refunds'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as MyPlanRouteImport } from './routes/my-plan'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutRouteImport } from './routes/about'
@@ -20,6 +23,21 @@ import { Route as TodoDayRouteImport } from './routes/todo_.$day'
 const TodoRoute = TodoRouteImport.update({
   id: '/todo',
   path: '/todo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundsRoute = RefundsRouteImport.update({
+  id: '/refunds',
+  path: '/refunds',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyPlanRoute = MyPlanRouteImport.update({
@@ -58,6 +76,9 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/my-plan': typeof MyPlanRoute
+  '/privacy': typeof PrivacyRoute
+  '/refunds': typeof RefundsRoute
+  '/terms': typeof TermsRoute
   '/todo': typeof TodoRoute
   '/todo/$day': typeof TodoDayRoute
   '/todo/upgrade': typeof TodoUpgradeRoute
@@ -67,6 +88,9 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/my-plan': typeof MyPlanRoute
+  '/privacy': typeof PrivacyRoute
+  '/refunds': typeof RefundsRoute
+  '/terms': typeof TermsRoute
   '/todo': typeof TodoRoute
   '/todo/$day': typeof TodoDayRoute
   '/todo/upgrade': typeof TodoUpgradeRoute
@@ -77,6 +101,9 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/my-plan': typeof MyPlanRoute
+  '/privacy': typeof PrivacyRoute
+  '/refunds': typeof RefundsRoute
+  '/terms': typeof TermsRoute
   '/todo': typeof TodoRoute
   '/todo_/$day': typeof TodoDayRoute
   '/todo_/upgrade': typeof TodoUpgradeRoute
@@ -88,6 +115,9 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/my-plan'
+    | '/privacy'
+    | '/refunds'
+    | '/terms'
     | '/todo'
     | '/todo/$day'
     | '/todo/upgrade'
@@ -97,6 +127,9 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/my-plan'
+    | '/privacy'
+    | '/refunds'
+    | '/terms'
     | '/todo'
     | '/todo/$day'
     | '/todo/upgrade'
@@ -106,6 +139,9 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/my-plan'
+    | '/privacy'
+    | '/refunds'
+    | '/terms'
     | '/todo'
     | '/todo_/$day'
     | '/todo_/upgrade'
@@ -116,6 +152,9 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
   MyPlanRoute: typeof MyPlanRoute
+  PrivacyRoute: typeof PrivacyRoute
+  RefundsRoute: typeof RefundsRoute
+  TermsRoute: typeof TermsRoute
   TodoRoute: typeof TodoRoute
   TodoDayRoute: typeof TodoDayRoute
   TodoUpgradeRoute: typeof TodoUpgradeRoute
@@ -128,6 +167,27 @@ declare module '@tanstack/react-router' {
       path: '/todo'
       fullPath: '/todo'
       preLoaderRoute: typeof TodoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refunds': {
+      id: '/refunds'
+      path: '/refunds'
+      fullPath: '/refunds'
+      preLoaderRoute: typeof RefundsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-plan': {
@@ -180,6 +240,9 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
   MyPlanRoute: MyPlanRoute,
+  PrivacyRoute: PrivacyRoute,
+  RefundsRoute: RefundsRoute,
+  TermsRoute: TermsRoute,
   TodoRoute: TodoRoute,
   TodoDayRoute: TodoDayRoute,
   TodoUpgradeRoute: TodoUpgradeRoute,
