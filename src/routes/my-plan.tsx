@@ -7,6 +7,7 @@ import {
   getH2GRStatus,
 } from "@/lib/h2gr-plan";
 import { Wordmark } from "@/components/how2getrich/Wordmark";
+import { RingLoader } from "@/components/how2getrich/RingLoader";
 
 // Inline type so we don't pull the server-side generator module (and
 // its `process.env` access) into the client bundle.
@@ -210,19 +211,8 @@ function MyPlan() {
       {loading ? (
         <>
           <Wordmark />
-          <div
-            className="mt-[64px] flex w-full max-w-[420px] flex-col items-center gap-[14px]"
-            style={{
-              fontFamily:
-                '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
-            }}
-          >
-            <span className="text-[15px] tracking-wide text-white/70">
-              loading your plan…
-            </span>
-            <div className="h-[3px] w-full overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-[35%] animate-h2gr-loader rounded-full bg-white/85" />
-            </div>
+          <div className="mt-[64px] flex w-full flex-col items-center justify-center">
+            <RingLoader label="loading your plan…" durationMs={4000} />
           </div>
         </>
       ) : (
@@ -301,18 +291,12 @@ function MyPlan() {
             className="mt-[36px] flex w-full justify-center"
           >
             {generatingNext ? (
-              <div
-                className="flex flex-col items-center gap-[8px] text-[14px] text-white/55"
-                style={{
-                  fontFamily:
-                    '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
-                }}
-              >
-                <span>generating the next month…</span>
-                <div className="h-[3px] w-[200px] overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full w-[35%] animate-h2gr-loader rounded-full bg-white/85" />
-                </div>
-              </div>
+              <RingLoader
+                label="generating the next month…"
+                durationMs={5000}
+                size={64}
+                strokeWidth={5}
+              />
             ) : (
               <button
                 type="button"

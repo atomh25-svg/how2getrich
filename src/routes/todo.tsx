@@ -9,6 +9,7 @@ import {
   getH2GRStatus,
   replaceCurrentPlan,
 } from "@/lib/h2gr-plan";
+import { RingLoader } from "@/components/how2getrich/RingLoader";
 import { Wordmark } from "@/components/how2getrich/Wordmark";
 
 // Inline type + static fallback so this route doesn't pull the
@@ -304,19 +305,11 @@ function TodoPlan() {
       {loading ? (
         <>
           <Wordmark />
-          <div
-            className="mt-[64px] flex w-full max-w-[420px] flex-col items-center gap-[14px]"
-            style={{
-              fontFamily:
-                '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
-            }}
-          >
-            <span className="text-[15px] tracking-wide text-white/70">
-              generating your plan…
-            </span>
-            <div className="h-[3px] w-full overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-[35%] animate-h2gr-loader rounded-full bg-white/85" />
-            </div>
+          {/* Ring loader centered under the wordmark. mx-auto +
+              items-center on a self-contained flex column guarantees
+              dead-center alignment regardless of stage width. */}
+          <div className="mt-[64px] flex w-full flex-col items-center justify-center">
+            <RingLoader label="generating your plan…" durationMs={6000} />
           </div>
         </>
       ) : (
