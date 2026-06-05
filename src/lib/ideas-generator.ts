@@ -239,9 +239,9 @@ function parseAndValidate(rawText: string): GeneratedIdea[] {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  how2getrich 7-day plan generator                                           */
+/*  how2getrich 30-day plan generator                                           */
 /*  Takes one free-text "tell me about yourself" answer and produces a         */
-/*  personalized 7-day execution plan (the kind of plan a get-rich-quick       */
+/*  personalized 30-day execution plan (the kind of plan a get-rich-quick       */
 /*  zine would show, but actually grounded). Returns a static fallback when    */
 /*  no ANTHROPIC_API_KEY is configured so /todo still renders in dev.          */
 /* -------------------------------------------------------------------------- */
@@ -252,11 +252,11 @@ export type H2GRPlanStep = {
   body: string; // 1-line detail / examples
 };
 
-const H2GR_PLAN_SYSTEM_PROMPT = `You are a no-bullshit startup advisor who writes 7-day "how to get rich" plans tailored to ONE specific person's situation. Plans are concrete, executable, and aimed at someone with limited time and no audience — but the actual content must be UNIQUELY shaped by what the person told you about themselves.
+const H2GR_PLAN_SYSTEM_PROMPT = `You are a no-bullshit startup advisor who writes 30-day "how to get rich" plans tailored to ONE specific person's situation. Plans are concrete, executable, and aimed at someone with limited time and no audience — but the actual content must be UNIQUELY shaped by what the person told you about themselves.
 
 Output format (HARD rules):
 - Output ONLY a JSON array. No prose before or after. No markdown code fences.
-- The array must contain EXACTLY 7 step objects, ordered day 1 → day 7.
+- The array must contain EXACTLY 30 step objects, ordered day 1 → day 30.
 - Each step matches this shape: { "day": "day N", "title": string, "body": "" }
 - "title" is ONE specific sentence, 12-22 words, 80-140 characters. The sentence names a concrete action AND the specific tool, customer, subreddit, or dollar amount that makes it executable. Plain prose — no markdown bullets, no parenthetical asides, no "you should…" prefix.
 - "body" must be the empty string "". Do NOT put a separate descriptor here — everything goes in "title".
@@ -266,12 +266,19 @@ Personalization rules — the BIGGEST source of value:
 - Every step must reference something they specifically said. Don't write generic copy. If they said "plumber in Ohio with two kids", day 1 isn't "pick a boring skill", it's a sentence about listing the 5 most annoying jobs they quoted this month, followed by a sentence about how to spot a recurring complaint pattern.
 - DO NOT use the meta-framework language ("boring skills", "one painful customer", "dumbest possible offer", "25 real people") unless it actually fits — translate the arc into THEIR world.
 - If they hate selling, plan around inbound (content, SEO, lead magnets) instead of cold outreach. If they don't code, plan around no-code (Notion forms, Stripe Payment Links, Carrd one-pager). If they have <5 hrs/week, each day is one 30-45 min task.
-- The 7 days should still ARC from "pick something specific" → "prove there's demand" → "make a tiny first thing" → "get a real person to pay". But how that arc shows up is entirely shaped by their situation.
+
+The 30 days break into three phases — adapt the SPECIFIC content to their situation but keep the SHAPE:
+- Days 1-7 — Validate & shape the offer: pick the specific skill / niche, study 20 real money-making examples, write the dumbest viable offer, build a one-page site, create one tiny sample result, send the offer to the first 25 real humans.
+- Days 8-14 — Get the first paying customer: refine the offer based on day-7 responses, follow up with warm leads, productize what people said yes to, ship one small upgrade, send to a second batch of 25, ask for a testimonial, post first build-in-public update.
+- Days 15-21 — Repeat the play & raise prices: bring in customer #2 and #3, write a "how I did this" post in a specific community, raise the price 20%, set up a Stripe Payment Link or Gumroad, automate the most annoying step.
+- Days 22-30 — Compound & systematize: launch in one new channel, build a tiny email list (ConvertKit free tier), batch-create a week of content, define a referral mechanic, decide what to KEEP / KILL / DOUBLE-DOWN on for the next month.
+
+Every day in every phase still references their actual situation.
 
 If the person's input is empty or one word, fall back to a generic but still-named-tool plan (e.g. titles that reference Reddit, Carrd, Stripe Payment Links by name).`;
 
 /**
- * Generate a tailored 7-day plan.
+ * Generate a tailored 30-day plan.
  *
  * Month 1 (the free lead magnet) is generated from just the user's
  * "tell me about yourself" input. Month 2+ (paid) takes an array of
@@ -334,8 +341,8 @@ async function generateSevenDayPlanWithClaude(
 ${input}
 """${priorContext}${monthInstruction}
 
-Generate their tailored ${month > 1 ? `Month ${month}` : ""} 7-day plan as JSON only.`
-    : `The user did not share anything about themselves. Generate the generic 7-day plan as JSON only.${monthInstruction}`;
+Generate their tailored ${month > 1 ? `Month ${month}` : ""} 30-day plan as JSON only.`
+    : `The user did not share anything about themselves. Generate the generic 30-day plan as JSON only.${monthInstruction}`;
 
   const response = await fetch(CLAUDE_ENDPOINT, {
     method: "POST",
@@ -346,7 +353,8 @@ Generate their tailored ${month > 1 ? `Month ${month}` : ""} 7-day plan as JSON 
     },
     body: JSON.stringify({
       model: CLAUDE_MODEL,
-      max_tokens: 1024,
+      // 30 day-steps × ~120 chars each + JSON overhead → ~4k tokens worst case
+      max_tokens: 4096,
       system: [
         {
           type: "text",
@@ -404,58 +412,66 @@ Generate their tailored ${month > 1 ? `Month ${month}` : ""} 7-day plan as JSON 
       body: trim(body, 200),
     });
   }
-  // Pad to 7 with the static template if Claude under-delivered.
-  if (steps.length < 7) {
+  // Pad to 30 with the static template if Claude under-delivered.
+  if (steps.length < 30) {
     const fallback = staticSevenDayPlan();
-    for (let i = steps.length; i < 7; i++) steps.push(fallback[i]);
+    for (let i = steps.length; i < 30; i++) steps.push(fallback[i]);
   }
-  return steps.slice(0, 7);
+  return steps.slice(0, 30);
 }
 
-/** Static fallback — the original 7-day plan straight from the Figma. */
+/**
+ * Static fallback — used when ANTHROPIC_API_KEY is missing OR Claude
+ * returns fewer than 30 entries. Mirrors the 4-phase arc in the system
+ * prompt: validate (1-7) → first paying customer (8-14) → repeat & raise
+ * prices (15-21) → compound & systematize (22-30). Function name kept
+ * legacy for backward compat with imports.
+ */
 export function staticSevenDayPlan(): H2GRPlanStep[] {
   return [
-    {
-      day: "day 1",
-      title: "Choose one boring skill people already pay for",
-      body: "examples: editing, landing pages, thumbnails, ads, automation",
-    },
-    {
-      day: "day 2",
-      title: "Pick one specific customer with a painful problem",
-      body: "do not build for everyone",
-    },
-    {
-      day: "day 3",
-      title: "Find 20 examples of people already making money this way",
-      body: "steal the pattern, not the product",
-    },
-    {
-      day: "day 4",
-      title: "Write the dumbest possible offer",
-      body: '"I will help [person] get [result] without [pain]"',
-    },
-    {
-      day: "day 5",
-      title: "Make a one-page site explaining the offer",
-      body: "headline, proof, price, contact button",
-    },
-    {
-      day: "day 6",
-      title: "Create one tiny sample result",
-      body: "mockup, demo, before/after, screenshot, short video",
-    },
-    {
-      day: "day 7",
-      title: "Send the offer to 25 real people",
-      body: "no ads yet. no logo redesign. talk to humans.",
-    },
+    // Phase 1 — Validate & shape the offer
+    { day: "day 1", title: "Choose one boring skill people already pay for", body: "" },
+    { day: "day 2", title: "Pick one specific customer with a painful problem", body: "" },
+    { day: "day 3", title: "Find 20 examples of people already making money this way", body: "" },
+    { day: "day 4", title: "Write the dumbest possible offer", body: "" },
+    { day: "day 5", title: "Make a one-page Carrd site explaining the offer", body: "" },
+    { day: "day 6", title: "Create one tiny sample result (mockup, demo, screenshot)", body: "" },
+    { day: "day 7", title: "Send the offer to 25 real people", body: "" },
+
+    // Phase 2 — First paying customer
+    { day: "day 8", title: "Re-read the 25 responses; cut what nobody wanted", body: "" },
+    { day: "day 9", title: "Follow up with the 3 warmest 'maybe' leads from day 7", body: "" },
+    { day: "day 10", title: "Productize what people said yes to — fixed scope, fixed price", body: "" },
+    { day: "day 11", title: "Ship one small upgrade to the offer based on real feedback", body: "" },
+    { day: "day 12", title: "Send the new offer to another 25 humans", body: "" },
+    { day: "day 13", title: "Ask your first paying customer for a 2-sentence testimonial", body: "" },
+    { day: "day 14", title: "Post your first build-in-public update on X or LinkedIn", body: "" },
+
+    // Phase 3 — Repeat & raise prices
+    { day: "day 15", title: "Reach out to 25 people in a SECOND niche segment", body: "" },
+    { day: "day 16", title: "Land customer #2 — same offer, same script", body: "" },
+    { day: "day 17", title: "Write a 'how I got my first $X' post for a specific subreddit", body: "" },
+    { day: "day 18", title: "Land customer #3 — proves the offer isn't a fluke", body: "" },
+    { day: "day 19", title: "Raise your price 20% on the next inbound lead", body: "" },
+    { day: "day 20", title: "Set up Stripe Payment Link or Gumroad — no more invoices", body: "" },
+    { day: "day 21", title: "Automate the most annoying step (Zapier, n8n, or a quick script)", body: "" },
+
+    // Phase 4 — Compound & systematize
+    { day: "day 22", title: "Launch in one new distribution channel (Reddit, LinkedIn DMs, niche newsletter)", body: "" },
+    { day: "day 23", title: "Start a tiny email list with ConvertKit's free tier — 1 form, 1 welcome email", body: "" },
+    { day: "day 24", title: "Batch-create one week of social content in a single session", body: "" },
+    { day: "day 25", title: "Add a referral mechanic — 'introduce me to a friend, get $X off'", body: "" },
+    { day: "day 26", title: "Reach out to 5 micro-influencers in the niche with a free trial", body: "" },
+    { day: "day 27", title: "Document your full process so customer #10 onboards without you", body: "" },
+    { day: "day 28", title: "Audit your funnel — where are people dropping off?", body: "" },
+    { day: "day 29", title: "Write the month-1 retrospective post (real numbers)", body: "" },
+    { day: "day 30", title: "Decide: KEEP what worked, KILL what didn't, DOUBLE-DOWN next month", body: "" },
   ];
 }
 
 /* -------------------------------------------------------------------------- */
 /*  how2getrich PER-DAY detail generator                                       */
-/*  Zooms into ONE day of the 7-day plan and produces an expanded breakdown:   */
+/*  Zooms into ONE day of the 30-day plan and produces an expanded breakdown:   */
 /*  headline restating the action, "why today", 3-5 concrete steps, an         */
 /*  example shaped by the user's own answer, and a stuck-hint escape hatch.    */
 /* -------------------------------------------------------------------------- */
@@ -477,7 +493,7 @@ export type H2GRDayDetail = {
  * Base per-day breakdown prompt. Used for free + basic tier users.
  * Premium gets an extended version below.
  */
-const H2GR_DAY_DETAIL_SYSTEM_PROMPT = `You are zooming into ONE day of a 7-day "how to get rich" plan and producing a detailed breakdown a first-time founder can execute in 30-60 minutes.
+const H2GR_DAY_DETAIL_SYSTEM_PROMPT = `You are zooming into ONE day of a 30-day "how to get rich" plan and producing a detailed breakdown a first-time founder can execute in 30-60 minutes.
 
 Output format (HARD rules):
 - Output ONLY a JSON object. No prose before or after. No markdown code fences.
@@ -500,7 +516,7 @@ Personalization rules:
  * "if_stuck" with multiple escape hatches. This is what the user gets
  * for the $10/mo Premium price differential.
  */
-const H2GR_DAY_DETAIL_SYSTEM_PROMPT_PREMIUM = `You are zooming into ONE day of a 7-day "how to get rich" plan for a PREMIUM subscriber. The breakdown must be substantially deeper than the basic version — premium users paid for detail, so give it to them.
+const H2GR_DAY_DETAIL_SYSTEM_PROMPT_PREMIUM = `You are zooming into ONE day of a 30-day "how to get rich" plan for a PREMIUM subscriber. The breakdown must be substantially deeper than the basic version — premium users paid for detail, so give it to them.
 
 Output format (HARD rules):
 - Output ONLY a JSON object. No prose before or after. No markdown code fences.
@@ -561,7 +577,7 @@ async function generateH2GRDayDetailWithClaude(
 ${input.trim().slice(0, 800) || "(no input provided)"}
 """
 
-Their 7-day plan:
+Their 30-day plan:
 ${restOfPlan}
 
 Today (Day ${dayNumber}) is: ${today?.title ?? "(missing)"}

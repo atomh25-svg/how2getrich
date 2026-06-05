@@ -52,7 +52,7 @@ export const Route = createFileRoute("/todo_/$day")({
 function DayDetailPage() {
   const { day } = Route.useParams();
   const { s: sessionId, month } = Route.useSearch();
-  const dayNumber = Math.max(1, Math.min(7, parseInt(day, 10) || 1));
+  const dayNumber = Math.max(1, Math.min(30, parseInt(day, 10) || 1));
 
   const [detail, setDetail] = useState<DayDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -244,7 +244,7 @@ function DayDetailPage() {
               sessionId={sessionId}
               month={month}
               label="next day →"
-              enabled={dayNumber < 7}
+              enabled={dayNumber < 30}
             />
           </div>
         </>

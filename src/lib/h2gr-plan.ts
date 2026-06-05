@@ -65,7 +65,7 @@ async function resolveTier(
 /* -------------------------------------------------------------------------- */
 
 /**
- * Generate (or return cached) the 7-day plan for a given (session, month).
+ * Generate (or return cached) the 30-day plan for a given (session, month).
  *
  * Month 1 is free for everyone — no auth needed, just an anonymous
  * session_id. Month 2+ requires a paid tier (basic or premium), looked
@@ -113,7 +113,7 @@ export const generateH2GRPlan = createServerFn({ method: "POST" })
           if (cached && cached.input === input) {
             try {
               const plan = JSON.parse(cached.plan_json) as H2GRPlanStep[];
-              if (Array.isArray(plan) && plan.length === 7) {
+              if (Array.isArray(plan) && plan.length === 30) {
                 return { ok: true, plan, cached: true, month };
               }
             } catch {
@@ -236,7 +236,7 @@ export const getH2GRDayDetail = createServerFn({ method: "POST" })
       sessionId: typeof data?.sessionId === "string" ? data.sessionId : "",
       dayNumber:
         typeof data?.dayNumber === "number" && Number.isFinite(data.dayNumber)
-          ? Math.max(1, Math.min(7, Math.round(data.dayNumber)))
+          ? Math.max(1, Math.min(30, Math.round(data.dayNumber)))
           : 0,
       month:
         typeof data?.month === "number" && Number.isFinite(data.month)

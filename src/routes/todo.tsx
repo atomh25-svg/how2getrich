@@ -13,21 +13,51 @@ import { Wordmark } from "@/components/how2getrich/Wordmark";
 // server-side ideas-generator module (and its `process.env` access)
 // into the client bundle. The server function returns the same shape.
 type H2GRPlanStep = { day: string; title: string; body: string };
+// Initial render state — replaced by the API-generated plan within ~1s.
+// Mirrors the 4-phase 30-day arc in src/lib/ideas-generator.ts so the
+// fallback still reads cleanly if the API call ever fails outright.
 const STATIC_PLAN: H2GRPlanStep[] = [
-  { day: "day 1", title: "Choose one boring skill people already pay for", body: "examples: editing, landing pages, thumbnails, ads, automation" },
-  { day: "day 2", title: "Pick one specific customer with a painful problem", body: "do not build for everyone" },
-  { day: "day 3", title: "Find 20 examples of people already making money this way", body: "steal the pattern, not the product" },
-  { day: "day 4", title: "Write the dumbest possible offer", body: '"I will help [person] get [result] without [pain]"' },
-  { day: "day 5", title: "Make a one-page site explaining the offer", body: "headline, proof, price, contact button" },
-  { day: "day 6", title: "Create one tiny sample result", body: "mockup, demo, before/after, screenshot, short video" },
-  { day: "day 7", title: "Send the offer to 25 real people", body: "no ads yet. no logo redesign. talk to humans." },
+  // Phase 1 — Validate & shape the offer
+  { day: "day 1", title: "Choose one boring skill people already pay for", body: "" },
+  { day: "day 2", title: "Pick one specific customer with a painful problem", body: "" },
+  { day: "day 3", title: "Find 20 examples of people already making money this way", body: "" },
+  { day: "day 4", title: "Write the dumbest possible offer", body: "" },
+  { day: "day 5", title: "Make a one-page Carrd site explaining the offer", body: "" },
+  { day: "day 6", title: "Create one tiny sample result (mockup, demo, screenshot)", body: "" },
+  { day: "day 7", title: "Send the offer to 25 real people", body: "" },
+  // Phase 2 — First paying customer
+  { day: "day 8", title: "Re-read the 25 responses; cut what nobody wanted", body: "" },
+  { day: "day 9", title: "Follow up with the 3 warmest 'maybe' leads from day 7", body: "" },
+  { day: "day 10", title: "Productize what people said yes to — fixed scope, fixed price", body: "" },
+  { day: "day 11", title: "Ship one small upgrade to the offer based on real feedback", body: "" },
+  { day: "day 12", title: "Send the new offer to another 25 humans", body: "" },
+  { day: "day 13", title: "Ask your first paying customer for a 2-sentence testimonial", body: "" },
+  { day: "day 14", title: "Post your first build-in-public update on X or LinkedIn", body: "" },
+  // Phase 3 — Repeat & raise prices
+  { day: "day 15", title: "Reach out to 25 people in a SECOND niche segment", body: "" },
+  { day: "day 16", title: "Land customer #2 — same offer, same script", body: "" },
+  { day: "day 17", title: "Write a 'how I got my first $X' post for a specific subreddit", body: "" },
+  { day: "day 18", title: "Land customer #3 — proves the offer isn't a fluke", body: "" },
+  { day: "day 19", title: "Raise your price 20% on the next inbound lead", body: "" },
+  { day: "day 20", title: "Set up Stripe Payment Link or Gumroad — no more invoices", body: "" },
+  { day: "day 21", title: "Automate the most annoying step (Zapier, n8n, or a quick script)", body: "" },
+  // Phase 4 — Compound & systematize
+  { day: "day 22", title: "Launch in one new distribution channel", body: "" },
+  { day: "day 23", title: "Start a tiny email list with ConvertKit's free tier", body: "" },
+  { day: "day 24", title: "Batch-create one week of social content in a single session", body: "" },
+  { day: "day 25", title: "Add a referral mechanic — 'introduce me to a friend, get $X off'", body: "" },
+  { day: "day 26", title: "Reach out to 5 micro-influencers in the niche with a free trial", body: "" },
+  { day: "day 27", title: "Document your full process so customer #10 onboards without you", body: "" },
+  { day: "day 28", title: "Audit your funnel — where are people dropping off?", body: "" },
+  { day: "day 29", title: "Write the month-1 retrospective post (real numbers)", body: "" },
+  { day: "day 30", title: "Decide: KEEP what worked, KILL what didn't, DOUBLE-DOWN next month", body: "" },
 ];
 
 export const Route = createFileRoute("/todo")({
   head: () => ({
     meta: [
       { title: "To Do — how2getrich.online" },
-      { name: "description", content: "Your tailored 7-day plan." },
+      { name: "description", content: "Your tailored 30-day plan." },
     ],
   }),
   validateSearch: (search: Record<string, unknown>) => ({
@@ -49,7 +79,7 @@ export const Route = createFileRoute("/todo")({
 });
 
 /**
- * Screen 2 — the tailored 7-day plan. After the user submits Screen 1
+ * Screen 2 — the tailored 30-day plan. After the user submits Screen 1
  * they land here. The plan is generated by Claude via the
  * generateH2GRPlan server function (reusing the same Anthropic API
  * pipeline that powers the LaunchFly Blueprint generator) and cached
@@ -57,7 +87,7 @@ export const Route = createFileRoute("/todo")({
  * navigation.
  *
  * Layout: same chrome as Screen 1 (sidebar + right spine + "More info →")
- * with the plan rendered as a list, and the "Get 365 days →" upsell
+ * with the plan rendered as a list, and the "Get year-long →" upsell
  * tucked at the bottom.
  */
 
