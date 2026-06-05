@@ -96,15 +96,12 @@ type Tier = {
   price: string;
 };
 
+// Simplified to a single $9.99 tier — Premium was retired to keep the
+// pricing story tight. The "premium" id is still accepted by the server
+// (and any pre-existing premium subscriber stays grandfathered as paid)
+// but the UI only ever surfaces "basic".
 const TIERS: Tier[] = [
-  { id: "basic", name: "Basic Plan", price: "$9.99 a month" },
-  {
-    id: "premium",
-    name: "Premium Plan",
-    description:
-      "Deeper per-day detail · more examples · common pitfalls · tool picks",
-    price: "$19.99 a month",
-  },
+  { id: "basic", name: "Full Plan", price: "$9.99 a month" },
 ];
 
 function TodoPaywall() {
@@ -134,7 +131,7 @@ function TodoPaywall() {
     setPending(tier);
     try {
       const result = await startCheckout({
-        data: { tier, sessionId, returnPath: "/todo" },
+        data: { tier, sessionId, returnPath: "/my-plan" },
       });
       if (result.ok) {
         window.location.href = result.url;

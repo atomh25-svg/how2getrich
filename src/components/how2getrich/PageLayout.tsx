@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { Footer } from "./Footer";
-import { AuthCorner } from "./AuthCorner";
 
 /**
  * Shared chrome for every how2getrich screen.
@@ -43,8 +42,6 @@ export function PageLayout({
       </div>
       {rightRail}
       <Footer />
-      {/* Auth widget pinned to the bottom-left corner of the viewport. */}
-      <AuthCorner />
     </main>
   );
 }

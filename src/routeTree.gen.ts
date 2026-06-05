@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TodoRouteImport } from './routes/todo'
+import { Route as MyPlanRouteImport } from './routes/my-plan'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TodoUpgradeRouteImport } from './routes/todo_.upgrade'
 import { Route as TodoDayRouteImport } from './routes/todo_.$day'
@@ -20,9 +22,19 @@ const TodoRoute = TodoRouteImport.update({
   path: '/todo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MyPlanRoute = MyPlanRouteImport.update({
+  id: '/my-plan',
+  path: '/my-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,14 +55,18 @@ const TodoDayRoute = TodoDayRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/account': typeof AccountRoute
+  '/my-plan': typeof MyPlanRoute
   '/todo': typeof TodoRoute
   '/todo/$day': typeof TodoDayRoute
   '/todo/upgrade': typeof TodoUpgradeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/account': typeof AccountRoute
+  '/my-plan': typeof MyPlanRoute
   '/todo': typeof TodoRoute
   '/todo/$day': typeof TodoDayRoute
   '/todo/upgrade': typeof TodoUpgradeRoute
@@ -58,22 +74,48 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/account': typeof AccountRoute
+  '/my-plan': typeof MyPlanRoute
   '/todo': typeof TodoRoute
   '/todo_/$day': typeof TodoDayRoute
   '/todo_/upgrade': typeof TodoUpgradeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/account' | '/todo' | '/todo/$day' | '/todo/upgrade'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/account'
+    | '/my-plan'
+    | '/todo'
+    | '/todo/$day'
+    | '/todo/upgrade'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/account' | '/todo' | '/todo/$day' | '/todo/upgrade'
-  id: '__root__' | '/' | '/account' | '/todo' | '/todo_/$day' | '/todo_/upgrade'
+  to:
+    | '/'
+    | '/about'
+    | '/account'
+    | '/my-plan'
+    | '/todo'
+    | '/todo/$day'
+    | '/todo/upgrade'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/account'
+    | '/my-plan'
+    | '/todo'
+    | '/todo_/$day'
+    | '/todo_/upgrade'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
+  MyPlanRoute: typeof MyPlanRoute
   TodoRoute: typeof TodoRoute
   TodoDayRoute: typeof TodoDayRoute
   TodoUpgradeRoute: typeof TodoUpgradeRoute
@@ -88,11 +130,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TodoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/my-plan': {
+      id: '/my-plan'
+      path: '/my-plan'
+      fullPath: '/my-plan'
+      preLoaderRoute: typeof MyPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/account': {
       id: '/account'
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -121,7 +177,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
+  MyPlanRoute: MyPlanRoute,
   TodoRoute: TodoRoute,
   TodoDayRoute: TodoDayRoute,
   TodoUpgradeRoute: TodoUpgradeRoute,

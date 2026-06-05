@@ -189,6 +189,11 @@ function TodoPlan() {
       if (cancelled || !status) return;
       setTier(status.tier);
       setMonthsGenerated(status.monthsGenerated);
+      // Paid users should never see /todo (it's the 10-day preview +
+      // paywall for free users). Bounce them to the full /my-plan view.
+      if (status.tier === "basic" || status.tier === "premium") {
+        navigate({ to: "/my-plan" });
+      }
     }
 
     return () => {
@@ -281,7 +286,10 @@ function TodoPlan() {
                 '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
             }}
           >
-            {plan.map((step, i) => (
+            {/* Free preview = first 10 days of the personalized plan.
+                Days 11-30 (plus all subsequent months) live behind the
+                $9.99/mo paywall on /my-plan. */}
+            {plan.slice(0, 10).map((step, i) => (
               <li key={step.day}>
                 {/* Whole row is a clickable Link → /todo/{N}?s=…
                     -mx-3 px-3 -my-1 py-1 widens the click hit area
@@ -321,71 +329,25 @@ function TodoPlan() {
         </div>
       )}
 
-      {/* Tier-aware bottom CTA. Three states:
-          1. Free user, month 1 → "Continue past Month 1" → /todo/upgrade
-          2. Subscribed, next month already generated → "View Month N+1"
-          3. Subscribed, next month not yet → "Generate Month N+1" (calls server) */}
+      {/* Paywall card — the only bottom CTA in the simplified flow.
+          Free preview shows 10 days; unlocking surfaces 20 more days
+          (the rest of month 1) plus infinite scroll to subsequent months
+          on /my-plan. Paid users get bounced to /my-plan by applyStatus
+          so this branch never renders for them. */}
       {!loading && (
         <div className="mt-[40px] flex w-full justify-center">
-          {!isSubscribed && month === 1 ? (
-            <Link
-              to="/todo/upgrade"
-              search={{ s: sessionIdFromUrl }}
-              className="group inline-flex h-[80px] w-[437px] max-w-full items-center justify-center gap-[16px] rounded-[6px] bg-white text-[16px] text-black/80 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-white/40"
-              style={{
-                fontFamily:
-                  '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
-              }}
-            >
-              <span>Continue past Month 1</span>
-              <Arrow className="h-[9px] w-[44px] text-black" />
-            </Link>
-          ) : isSubscribed && nextMonthExists ? (
-            <Link
-              to="/todo"
-              search={{ s: sessionIdFromUrl, month: nextMonth }}
-              className="group inline-flex h-[80px] w-[437px] max-w-full items-center justify-center gap-[16px] rounded-[6px] bg-white text-[16px] text-black/80 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-white/40"
-              style={{
-                fontFamily:
-                  '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
-              }}
-            >
-              <span>View Month {nextMonth}</span>
-              <Arrow className="h-[9px] w-[44px] text-black" />
-            </Link>
-          ) : isSubscribed ? (
-            <button
-              type="button"
-              onClick={onGenerateNextMonth}
-              disabled={generatingNextMonth}
-              className="group inline-flex h-[80px] w-[437px] max-w-full items-center justify-center gap-[16px] rounded-[6px] bg-white text-[16px] text-black/80 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-white/40 disabled:cursor-wait disabled:opacity-60"
-              style={{
-                fontFamily:
-                  '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
-              }}
-            >
-              <span>
-                {generatingNextMonth
-                  ? `generating Month ${nextMonth}…`
-                  : `Generate Month ${nextMonth}`}
-              </span>
-              {!generatingNextMonth && (
-                <Arrow className="h-[9px] w-[44px] text-black" />
-              )}
-            </button>
-          ) : (
-            /* Subscribed user viewing a paid month — show "Manage" link. */
-            <Link
-              to="/account"
-              className="text-[14px] text-white/45 transition hover:text-white/70"
-              style={{
-                fontFamily:
-                  '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
-              }}
-            >
-              manage subscription →
-            </Link>
-          )}
+          <Link
+            to="/todo/upgrade"
+            search={{ s: sessionIdFromUrl }}
+            className="group inline-flex h-[80px] w-[437px] max-w-full items-center justify-center gap-[16px] rounded-[6px] bg-white text-[16px] text-black/80 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-white/40"
+            style={{
+              fontFamily:
+                '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+            }}
+          >
+            <span>Unlock the full plan — $9.99/mo</span>
+            <Arrow className="h-[9px] w-[44px] text-black" />
+          </Link>
         </div>
       )}
 
