@@ -160,7 +160,12 @@ function TodoPlan() {
             status &&
             (status.tier === "basic" || status.tier === "premium");
           if (isPaid) {
-            await applyStatus(status);
+            // Set tier WITHOUT going through applyStatus — applyStatus
+            // bounces paid users to /my-plan, which is exactly what
+            // we're trying to avoid here. The preview is in-memory and
+            // shouldn't redirect.
+            setTier(status.tier);
+            setMonthsGenerated(status.monthsGenerated);
             const preview = await generatePlanPreview({
               data: { input },
             });
