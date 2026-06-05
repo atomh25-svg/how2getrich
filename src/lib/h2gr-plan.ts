@@ -216,8 +216,11 @@ export const getH2GRPlan = createServerFn({ method: "GET" })
 
       try {
         const plan = JSON.parse(row.plan_json) as H2GRPlanStep[];
-        if (!Array.isArray(plan) || plan.length === 0) {
-          return { ok: false, reason: "bad-plan" };
+        // A legacy 7-day cached plan would render as a broken month
+        // (days 1-7 then jump to 31). Treat shorter plans as a cache
+        // miss so the caller regenerates a full 30-day plan.
+        if (!Array.isArray(plan) || plan.length < 30) {
+          return { ok: false, reason: "stale-plan-length" };
         }
         return { ok: true, plan, input: row.input, month };
       } catch {

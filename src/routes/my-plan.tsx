@@ -86,15 +86,20 @@ function MyPlan() {
   }
 
   function appendMonth(month: number, plan: H2GRPlanStep[]) {
-    const startDay = (month - 1) * 30;
-    setStacked((prev) => [
-      ...prev,
-      ...plan.map((step, i) => ({
-        day: startDay + i + 1,
-        month,
-        step,
-      })),
-    ]);
+    // Use the CUMULATIVE length of what's already rendered, not a
+    // `(month - 1) * 30` formula. A legacy month with fewer than 30
+    // entries would otherwise leave a numbering gap (1..7 → 31..60).
+    setStacked((prev) => {
+      const startDay = prev.length;
+      return [
+        ...prev,
+        ...plan.map((step, i) => ({
+          day: startDay + i + 1,
+          month,
+          step,
+        })),
+      ];
+    });
   }
 
   useEffect(() => {
