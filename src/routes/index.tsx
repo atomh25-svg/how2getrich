@@ -64,9 +64,14 @@ function Landing() {
       /* private mode */
     }
 
-    // /todo will pick up the session id from the URL, call the server
-    // function to generate-or-fetch, and render the plan.
-    navigate({ to: "/todo", search: { s: sessionId } });
+    // /todo picks up the session id + intent from the URL.
+    // intent=new tells /todo "the user just submitted a NEW input from
+    // the homepage" — paid users see a 10-day preview + 'Choose This
+    // Plan' button instead of being auto-bounced to /my-plan.
+    navigate({
+      to: "/todo",
+      search: { s: sessionId, intent: "new" },
+    });
   }
 
   return (

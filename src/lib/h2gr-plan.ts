@@ -378,3 +378,114 @@ export const getH2GRStatus = createServerFn({ method: "GET" })
       return { tier, clerkUserId, monthsGenerated };
     },
   );
+
+/* -------------------------------------------------------------------------- */
+/*  Plan PREVIEW (in-memory) + REPLACE (commit) — used when a paid user       */
+/*  generates a new plan from the homepage. The preview lets them see the    */
+/*  new plan WITHOUT clobbering their existing one; the replace happens only */
+/*  when they explicitly click "Choose This Plan."                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Generate a 30-day plan from the given input WITHOUT persisting. Used
+ * by /todo when a paid user submits the homepage form again — we want
+ * to render a preview so they can decide whether to keep their current
+ * plan or swap to this new one. No D1 writes, no tier checks (the
+ * caller is already paid by definition of this flow), no caching.
+ */
+export const generatePlanPreview = createServerFn({ method: "POST" })
+  .inputValidator((data: { input: string }) => ({
+    input: typeof data?.input === "string" ? data.input : "",
+  }))
+  .handler(
+    async ({
+      data,
+    }): Promise<
+      | { ok: true; plan: H2GRPlanStep[] }
+      | { ok: false; reason: string }
+    > => {
+      const input = data.input.trim().slice(0, 800);
+      if (!input) return { ok: false, reason: "empty-input" };
+      try {
+        const plan = await generateSevenDayPlanFor(input, 1, []);
+        return { ok: true, plan };
+      } catch (err) {
+        console.error("[h2gr-preview] generation failed:", err);
+        return { ok: false, reason: "generation-failed" };
+      }
+    },
+  );
+
+/**
+ * Commit a previously-previewed plan as the user's official plan.
+ * Overwrites month 1 with the new (input, plan) tuple AND wipes any
+ * month 2+ rows for this session, since those were generated from the
+ * OLD input and would no longer be coherent extensions.
+ *
+ * Per-day detail rows are also wiped — they reference the prior plan's
+ * day content; stale details would surface wrong text on /todo/$day.
+ */
+export const replaceCurrentPlan = createServerFn({ method: "POST" })
+  .inputValidator((data: {
+    sessionId: string;
+    input: string;
+    plan: H2GRPlanStep[];
+  }) => ({
+    sessionId: typeof data?.sessionId === "string" ? data.sessionId : "",
+    input: typeof data?.input === "string" ? data.input : "",
+    plan: Array.isArray(data?.plan) ? data.plan : [],
+  }))
+  .handler(
+    async ({
+      data,
+    }): Promise<{ ok: true } | { ok: false; reason: string }> => {
+      const { sessionId, input, plan } = data;
+      if (!sessionId) return { ok: false, reason: "no-session" };
+      if (!input.trim()) return { ok: false, reason: "empty-input" };
+      if (!plan.length) return { ok: false, reason: "empty-plan" };
+
+      const db = (env as unknown as Env).DB;
+      if (!db) return { ok: false, reason: "no-db" };
+
+      // Tier guard — only paid users can replace plans. Free users
+      // can only ever have the initial preview-as-plan.
+      const { tier } = await resolveTier(db, sessionId);
+      if (tier === "free") {
+        return { ok: false, reason: "requires-subscription" };
+      }
+
+      try {
+        // Overwrite month 1 with the new (input, plan).
+        await db
+          .prepare(
+            `INSERT INTO h2gr_plans (session_id, month, input, plan_json)
+             VALUES (?, 1, ?, ?)
+             ON CONFLICT(session_id, month) DO UPDATE SET
+               input = excluded.input,
+               plan_json = excluded.plan_json,
+               generated_at = unixepoch()`,
+          )
+          .bind(sessionId, input.trim().slice(0, 800), JSON.stringify(plan))
+          .run();
+
+        // Wipe months 2+ — they were continuations of the old plan
+        // and would read as discontinuous after the swap.
+        await db
+          .prepare(`DELETE FROM h2gr_plans WHERE session_id = ? AND month > 1`)
+          .bind(sessionId)
+          .run();
+
+        // Wipe per-day detail cache for this session — stale entries
+        // would surface old plan content on /todo/$day.
+        await db
+          .prepare(`DELETE FROM h2gr_day_details WHERE session_id = ?`)
+          .bind(sessionId)
+          .run();
+
+        return { ok: true };
+      } catch (err) {
+        console.error("[h2gr-replace] failed:", err);
+        return { ok: false, reason: "db-error" };
+      }
+    },
+  );

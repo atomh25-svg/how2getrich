@@ -4,8 +4,10 @@ import { PageLayout } from "@/components/how2getrich/PageLayout";
 import { DottedSpine } from "@/components/how2getrich/DottedSpine";
 import {
   generateH2GRPlan,
+  generatePlanPreview,
   getH2GRPlan,
   getH2GRStatus,
+  replaceCurrentPlan,
 } from "@/lib/h2gr-plan";
 import { Wordmark } from "@/components/how2getrich/Wordmark";
 
@@ -74,6 +76,11 @@ export const Route = createFileRoute("/todo")({
     // welcome banner the first time the user lands here after paying.
     subscribed:
       typeof search.subscribed === "string" ? search.subscribed : "",
+    // Set to "new" by the homepage form submit. Tells /todo that the
+    // user just submitted fresh input — paid users see a 10-day
+    // preview + 'Choose This Plan' instead of being auto-bounced to
+    // /my-plan.
+    intent: typeof search.intent === "string" ? search.intent : "",
   }),
   component: TodoPlan,
 });
@@ -94,7 +101,7 @@ export const Route = createFileRoute("/todo")({
 function TodoPlan() {
   // session_id from the ?s= query param (or localStorage as a backup,
   // for users who hit /todo directly without coming from /).
-  const { s: sessionIdFromUrl, month, subscribed } = Route.useSearch();
+  const { s: sessionIdFromUrl, month, subscribed, intent } = Route.useSearch();
   const navigate = useNavigate();
 
   // Echo the user's answer back at the top of the plan once we have it.
@@ -106,6 +113,11 @@ function TodoPlan() {
   const [tier, setTier] = useState<"free" | "basic" | "premium">("free");
   const [monthsGenerated, setMonthsGenerated] = useState<number[]>([]);
   const [generatingNextMonth, setGeneratingNextMonth] = useState(false);
+  // Set when a paid user lands here with intent=new — they're previewing
+  // a NEW plan generated from fresh homepage input. The plan in state is
+  // in-memory only (not persisted) until they click "Choose This Plan".
+  const [previewMode, setPreviewMode] = useState(false);
+  const [committingChoice, setCommittingChoice] = useState(false);
 
   useEffect(() => {
     let sessionId = sessionIdFromUrl;
@@ -133,6 +145,40 @@ function TodoPlan() {
         const statusPromise = sessionId
           ? getH2GRStatus({ data: { sessionId } }).catch(() => null)
           : Promise.resolve(null);
+
+        // === PAID + intent=new path ===
+        // Paid user submitted fresh input from the homepage. Generate
+        // an in-memory preview WITHOUT persisting; if they click
+        // "Choose This Plan" we commit it via replaceCurrentPlan.
+        // We resolve status first so we don't run the preview path for
+        // a free user with intent=new (they should see the normal
+        // free preview + paywall instead).
+        if (intent === "new" && input) {
+          const status = await statusPromise;
+          if (cancelled) return;
+          const isPaid =
+            status &&
+            (status.tier === "basic" || status.tier === "premium");
+          if (isPaid) {
+            await applyStatus(status);
+            const preview = await generatePlanPreview({
+              data: { input },
+            });
+            if (cancelled) return;
+            if (preview.ok && Array.isArray(preview.plan)) {
+              setPlan(preview.plan);
+              setPreviewMode(true);
+            } else {
+              setError(
+                `Couldn't generate a preview: ${
+                  preview.ok ? "unknown" : preview.reason
+                }`,
+              );
+            }
+            setLoading(false);
+            return;
+          }
+        }
 
         // Try the persisted plan first — same session id + month returns
         // the exact plan we already paid Claude for.
@@ -329,12 +375,88 @@ function TodoPlan() {
         </div>
       )}
 
-      {/* Paywall card — the only bottom CTA in the simplified flow.
-          Free preview shows 10 days; unlocking surfaces 20 more days
-          (the rest of month 1) plus infinite scroll to subsequent months
-          on /my-plan. Paid users get bounced to /my-plan by applyStatus
-          so this branch never renders for them. */}
-      {!loading && (
+      {/* Bottom CTA. Two states:
+          - previewMode = true → paid user generated a new plan from
+            the homepage. Show "Choose This Plan" with a warning that
+            it'll replace their current plan.
+          - previewMode = false → free user looking at the 10-day
+            preview. Show the upgrade paywall. */}
+      {!loading && previewMode && (
+        <div className="mt-[40px] flex w-full flex-col items-center gap-[14px]">
+          <p
+            className="max-w-[437px] text-center text-[13.6px] leading-snug text-amber-200/90"
+            style={{
+              fontFamily:
+                '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+            }}
+          >
+            heads up: choosing this plan will <strong>replace</strong> your
+            current plan. your old plan and all generated months will be
+            erased.
+          </p>
+          <button
+            type="button"
+            disabled={committingChoice}
+            onClick={async () => {
+              const sid =
+                sessionIdFromUrl ||
+                (typeof window !== "undefined"
+                  ? window.localStorage.getItem("h2gr:sessionId") ?? ""
+                  : "");
+              const input =
+                typeof window !== "undefined"
+                  ? window.localStorage.getItem("h2gr:tellMeAboutYourself") ?? ""
+                  : "";
+              if (!sid || !input || !plan.length) return;
+              if (
+                !window.confirm(
+                  "Replace your current plan with this new one? Your existing plan and any extra months will be erased.",
+                )
+              )
+                return;
+              setCommittingChoice(true);
+              try {
+                const res = await replaceCurrentPlan({
+                  data: { sessionId: sid, input, plan },
+                });
+                if (res.ok) {
+                  navigate({ to: "/my-plan" });
+                } else {
+                  window.alert(`Couldn't switch plans: ${res.reason}`);
+                }
+              } finally {
+                setCommittingChoice(false);
+              }
+            }}
+            className="group inline-flex h-[80px] w-[437px] max-w-full items-center justify-center gap-[16px] rounded-[6px] bg-white text-[16px] text-black/80 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-white/40 disabled:cursor-wait disabled:opacity-60"
+            style={{
+              fontFamily:
+                '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+            }}
+          >
+            <span>
+              {committingChoice ? "switching plans…" : "Choose This Plan"}
+            </span>
+            {!committingChoice && (
+              <Arrow className="h-[9px] w-[44px] text-black" />
+            )}
+          </button>
+          <Link
+            to="/my-plan"
+            className="mt-[4px] text-[13px] text-white/45 transition hover:text-white/75"
+            style={{
+              fontFamily:
+                '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+            }}
+          >
+            ← keep my current plan
+          </Link>
+        </div>
+      )}
+
+      {/* Free-user paywall — only shown when NOT in previewMode (paid
+          users see the "Choose This Plan" block above instead). */}
+      {!loading && !previewMode && (
         <div className="mt-[40px] flex w-full justify-center">
           <Link
             to="/todo/upgrade"
