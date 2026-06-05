@@ -463,14 +463,14 @@ function TodoPlan() {
           }}
         >
           <div
-            className="w-[420px] max-w-full rounded-[8px] border border-amber-200/40 bg-[#0a0a0a] p-[24px] text-white shadow-2xl"
+            className="w-[420px] max-w-full rounded-[8px] border border-white/40 bg-[#0a0a0a] p-[24px] text-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             style={{
               fontFamily:
                 '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
             }}
           >
-            <h3 className="text-[18px] leading-tight text-amber-200">
+            <h3 className="text-[18px] leading-tight text-white">
               heads up
             </h3>
             <p className="mt-[12px] text-[14px] leading-snug text-white/80">
@@ -518,7 +518,7 @@ function TodoPlan() {
                     setCommittingChoice(false);
                   }
                 }}
-                className="inline-flex h-[40px] items-center rounded-[4px] bg-amber-200 px-[16px] text-[14px] font-medium text-black transition hover:bg-amber-100 disabled:cursor-wait disabled:opacity-60"
+                className="inline-flex h-[40px] items-center rounded-[4px] bg-white px-[16px] text-[14px] font-medium text-black transition hover:bg-white/90 disabled:cursor-wait disabled:opacity-60"
               >
                 {committingChoice ? "switching…" : "yes, replace"}
               </button>
