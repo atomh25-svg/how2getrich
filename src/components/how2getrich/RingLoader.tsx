@@ -1,18 +1,18 @@
 /**
- * Indeterminate spinning ring loader. A partial-arc circle rotates
- * continuously — never "freezes" mid-load even if the underlying
- * request takes longer than expected. White stroke on a quiet track,
- * tuned for the warm-black how2getrich palette.
+ * Indeterminate spinning ring loader with the label centered INSIDE
+ * the ring (not below). A 25%-arc white stroke rotates clockwise
+ * forever on a quiet track; the text sits inert in the middle while
+ * the arc travels around it.
  *
- * Generic `label` prop renders centered text below the ring so other
- * screens (per-day breakdown loader, next-month sentinel, etc.) can
- * reuse without restyling. `durationMs` controls spin speed only —
- * the animation loops forever; it doesn't "complete."
+ * Sized for the label to fit comfortably inside on the default
+ * (180px). Pass a smaller `size` for tight contexts — at <120px the
+ * label gets cramped, so set `label=""` for tiny indeterminate
+ * spinners.
  */
 export function RingLoader({
-  label = "generating your plan…",
+  label = "generating…",
   durationMs = 900,
-  size = 56,
+  size = 180,
   strokeWidth = 4,
   color = "rgba(255, 255, 255, 0.92)",
   trackColor = "rgba(255, 255, 255, 0.08)",
@@ -27,16 +27,15 @@ export function RingLoader({
 }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  // Visible arc length = ~25% of the circle. Feels active without
-  // looking like a finished progress bar.
   const arcLength = circumference * 0.25;
   const gapLength = circumference - arcLength;
-  // Unique animation name so multiple ring instances on the same
-  // page don't collide on the @keyframes block.
   const animName = `ring-spin-${size}-${Math.round(durationMs)}`;
 
   return (
-    <div className="flex flex-col items-center gap-[14px]">
+    <div
+      className="relative inline-flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
       <svg
         width={size}
         height={size}
@@ -52,9 +51,7 @@ export function RingLoader({
           strokeWidth={strokeWidth}
           fill="none"
         />
-        {/* Spinning arc — rotates clockwise forever. The whole circle
-            (not just the dasharray pattern) is rotated via CSS
-            transform so the arc visibly travels around the track. */}
+        {/* Spinning arc — rotates clockwise forever. */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -76,15 +73,20 @@ export function RingLoader({
           100% { transform: rotate(360deg); }
         }
       `}</style>
-      <span
-        className="text-[15px] tracking-wide text-white/70"
-        style={{
-          fontFamily:
-            '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
-        }}
-      >
-        {label}
-      </span>
+      {label && (
+        <span
+          className="absolute inset-0 flex items-center justify-center text-center text-[15px] leading-tight tracking-wide text-white/75"
+          style={{
+            // 14% inner padding so multi-word labels wrap inside the
+            // ring rather than colliding with the arc.
+            padding: `0 ${Math.round(size * 0.14)}px`,
+            fontFamily:
+              '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+          }}
+        >
+          {label}
+        </span>
+      )}
     </div>
   );
 }

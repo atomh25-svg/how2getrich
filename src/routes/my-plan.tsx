@@ -292,8 +292,8 @@ function MyPlan() {
           >
             {generatingNext ? (
               <RingLoader
-                label="generating the next month…"
-                size={42}
+                label="loading next month…"
+                size={140}
                 strokeWidth={3}
               />
             ) : (
