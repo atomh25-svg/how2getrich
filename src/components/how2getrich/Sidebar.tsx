@@ -36,7 +36,7 @@ export function Sidebar() {
           a signed-in-but-unpaid click lands on the upgrade page. */}
       <Show when="signed-in">
         <Divider />
-        <SidebarLink to="/my-plan" label="My Plan" className="mt-[12.5px]" />
+        <SidebarLink to="/my-plan" label="Plan" className="mt-[12.5px]" />
       </Show>
 
       <Divider />
