@@ -517,9 +517,15 @@ export const openH2GRCustomerPortal = createServerFn({ method: "POST" })
       try {
         const origin =
           process.env.PUBLIC_ORIGIN ?? "https://how2getrich.online";
+        // Pin to the live-mode Customer Portal config explicitly
+        // (you saved it on 2026-06-04). Avoids Stripe's "no default
+        // configuration found" failure mode when their default-
+        // resolution lags after saving settings.
+        const portalConfigId = "bpc_1TfAYa2EUV0tCio8qDGrtBZ3";
         const url = await createCustomerPortalSession(
           user.stripeCustomerId,
           `${origin}/my-plan`,
+          portalConfigId,
         );
         return { ok: true, url };
       } catch (err) {

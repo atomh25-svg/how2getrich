@@ -122,11 +122,16 @@ export async function createCheckoutSession(args: CheckoutArgs): Promise<string>
 export async function createCustomerPortalSession(
   customerId: string,
   returnUrl: string,
+  configurationId?: string,
 ): Promise<string> {
   const stripe = getStripe();
   const portal = await stripe.billingPortal.sessions.create({
     customer: customerId,
     return_url: returnUrl,
+    // Pin to a specific portal configuration when provided. Avoids
+    // the "no default configuration" failure when Stripe's
+    // auto-default resolution is unreliable in live mode.
+    ...(configurationId ? { configuration: configurationId } : {}),
   });
   return portal.url;
 }
