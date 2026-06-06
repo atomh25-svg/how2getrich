@@ -19,12 +19,13 @@ export function DottedSpine({
       className={className}
       style={{
         // Narrow column + linear-gradient repeating horizontal stripes
-        // → each "dot" reads as a thin short bar. Tighter spacing fits
-        // ~8 more bars in the same vertical length.
+        // → each "dot" reads as a thin short bar. Period dropped from
+        // 5.2px → 5.0px to slip ~3 more dots into the same spine
+        // length on the landing page (366px tall = 73 dots vs 70).
         width: 2.8,
         backgroundImage:
           "linear-gradient(to bottom, rgba(255,255,255,0.95) 0 1px, transparent 1px)",
-        backgroundSize: "100% 5.2px",
+        backgroundSize: "100% 5.0px",
         backgroundRepeat: "repeat-y",
         ...style,
       }}
