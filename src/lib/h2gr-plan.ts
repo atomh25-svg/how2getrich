@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { env } from "cloudflare:workers";
 
 import { canAccessMonth, getCurrentUser } from "./entitlement";
+import { createCustomerPortalSession } from "./stripe";
 import {
   generateH2GRDayDetailFor,
   generateSevenDayPlanFor,
@@ -486,6 +487,51 @@ export const replaceCurrentPlan = createServerFn({ method: "POST" })
       } catch (err) {
         console.error("[h2gr-replace] failed:", err);
         return { ok: false, reason: "db-error" };
+      }
+    },
+  );
+
+/* -------------------------------------------------------------------------- */
+/*  Open Stripe Customer Portal for the current user                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Mint a Stripe Customer Portal URL for whoever's signed in. Used by
+ * the /my-plan "manage subscription" link and the /account page so
+ * both shortcuts go straight to Stripe in one click (no detour
+ * through /account). Surfaces specific failure reasons so the UI
+ * can render an actionable error instead of "did nothing happen?".
+ */
+export const openH2GRCustomerPortal = createServerFn({ method: "POST" })
+  .handler(
+    async (): Promise<
+      { ok: true; url: string } | { ok: false; reason: string }
+    > => {
+      const user = await getCurrentUser(
+        env as unknown as { DB?: D1Database },
+      );
+      if (!user) return { ok: false, reason: "not-signed-in" };
+      if (!user.stripeCustomerId) {
+        return { ok: false, reason: "no-stripe-customer" };
+      }
+      try {
+        const origin =
+          process.env.PUBLIC_ORIGIN ?? "https://how2getrich.online";
+        const url = await createCustomerPortalSession(
+          user.stripeCustomerId,
+          `${origin}/my-plan`,
+        );
+        return { ok: true, url };
+      } catch (err) {
+        // The most common cause in production is "Customer Portal not
+        // enabled in live mode" — surface a hint instead of a bare
+        // 'portal-failed' so the user knows what to do.
+        const message =
+          err && typeof err === "object" && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "portal-failed";
+        console.error("[h2gr-portal] failed:", err);
+        return { ok: false, reason: message };
       }
     },
   );

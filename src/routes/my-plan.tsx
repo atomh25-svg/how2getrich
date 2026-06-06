@@ -5,6 +5,7 @@ import {
   generateH2GRPlan,
   getH2GRPlan,
   getH2GRStatus,
+  openH2GRCustomerPortal,
 } from "@/lib/h2gr-plan";
 import { Wordmark } from "@/components/how2getrich/Wordmark";
 import { RingLoader } from "@/components/how2getrich/RingLoader";
@@ -313,8 +314,29 @@ function MyPlan() {
           </div>
 
           <div className="mt-[40px] flex w-full justify-center">
-            <Link
-              to="/account"
+            <button
+              type="button"
+              onClick={async () => {
+                const res = await openH2GRCustomerPortal();
+                if (res.ok) {
+                  window.location.href = res.url;
+                } else if (res.reason === "not-signed-in") {
+                  // Edge case — they're viewing /my-plan but lost
+                  // their session somehow. Bounce home to re-auth.
+                  navigate({ to: "/" });
+                } else if (res.reason === "no-stripe-customer") {
+                  window.alert(
+                    "No subscription found on this account yet. Try subscribing first.",
+                  );
+                } else {
+                  // Most common live-mode error: Stripe Customer
+                  // Portal isn't enabled. The full message comes back
+                  // from Stripe so the user (or we) can debug it.
+                  window.alert(
+                    `Couldn't open billing portal:\n\n${res.reason}\n\nIf this persists, email support@how2getrich.online.`,
+                  );
+                }
+              }}
               className="text-[12.5px] text-white/40 transition hover:text-white/70"
               style={{
                 fontFamily:
@@ -322,7 +344,7 @@ function MyPlan() {
               }}
             >
               manage subscription →
-            </Link>
+            </button>
           </div>
 
           {/* Bottom spacer — keeps content above the fixed-position
