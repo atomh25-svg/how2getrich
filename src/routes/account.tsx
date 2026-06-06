@@ -108,12 +108,12 @@ function AccountPage() {
     <PageLayout>
       <Wordmark />
 
-      {/* Constrained centered column so the Account header, the
-          dt/dd rows, and the manage button all sit on the same
-          vertical midline as the wordmark above. Without the width
-          cap, the rows span the full 540px stage and visually drift
-          off-center. */}
-      <div className="mt-[28px] flex w-full max-w-[360px] flex-col items-center">
+      {/* Constrained centered column shifted ~30px to the right so the
+          block centers under the FULL wordmark + money-stack icon
+          composition (the icon sits past the text's right edge, so
+          the visual midline of 'how2getrich [icon]' sits right of the
+          text-only midline). */}
+      <div className="mt-[28px] ml-[30px] flex w-full max-w-[360px] flex-col items-center">
         <div className="flex w-full items-center justify-center gap-[16px]">
           <h1
             className="text-[22px] leading-tight text-white"
