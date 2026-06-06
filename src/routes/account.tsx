@@ -165,8 +165,11 @@ function AccountPage() {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline gap-[12px]">
-      <dt className="w-[110px] shrink-0 text-white/50">{label}</dt>
+    // Each row centers as a unit (label + value) under the page
+    // header. Dropped the fixed dt width so the pair always reads as
+    // one centered piece instead of a left-anchored 110px gutter.
+    <div className="flex items-baseline justify-center gap-[12px]">
+      <dt className="text-white/50">{label}</dt>
       <dd className="text-white/90">{value}</dd>
     </div>
   );
