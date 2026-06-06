@@ -523,14 +523,22 @@ export const openH2GRCustomerPortal = createServerFn({ method: "POST" })
         );
         return { ok: true, url };
       } catch (err) {
-        // The most common cause in production is "Customer Portal not
-        // enabled in live mode" — surface a hint instead of a bare
-        // 'portal-failed' so the user knows what to do.
-        const message =
-          err && typeof err === "object" && "message" in err
-            ? String((err as { message: unknown }).message)
-            : "portal-failed";
+        // Surface the actual Stripe error message so the user sees
+        // 'No configuration provided…' (Customer Portal not enabled
+        // in live mode — the #1 production cause) instead of a bare
+        // 'portal-failed'. Logs the full error server-side too.
         console.error("[h2gr-portal] failed:", err);
+        let message = "portal-failed";
+        if (err instanceof Error) message = err.message;
+        else if (typeof err === "string") message = err;
+        else if (err && typeof err === "object") {
+          const e = err as Record<string, unknown>;
+          if (typeof e.message === "string") message = e.message;
+          else if (e.raw && typeof e.raw === "object") {
+            const raw = e.raw as Record<string, unknown>;
+            if (typeof raw.message === "string") message = raw.message;
+          }
+        }
         return { ok: false, reason: message };
       }
     },
