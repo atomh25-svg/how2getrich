@@ -212,7 +212,7 @@ function MyPlan() {
         <>
           <Wordmark />
           <div className="mt-[64px] flex w-full flex-col items-center justify-center">
-            <RingLoader label="loading your plan…" />
+            <RingLoader label="loading your plan…" size={120} />
           </div>
         </>
       ) : (

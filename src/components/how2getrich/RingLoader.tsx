@@ -75,8 +75,11 @@ export function RingLoader({
       `}</style>
       {label && (
         <span
-          className="absolute inset-0 flex items-center justify-center text-center text-[15px] leading-tight tracking-wide text-white/75"
+          className="absolute inset-0 flex items-center justify-center text-center leading-tight tracking-wide text-white/75"
           style={{
+            // Scale font with ring size so the label sits inside
+            // cleanly at any size, with a floor of 10px for legibility.
+            fontSize: `${Math.max(10, Math.round(size * 0.085))}px`,
             // 14% inner padding so multi-word labels wrap inside the
             // ring rather than colliding with the arc.
             padding: `0 ${Math.round(size * 0.14)}px`,
