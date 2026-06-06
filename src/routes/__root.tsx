@@ -162,13 +162,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.gstatic.com",
         crossOrigin: "anonymous",
       },
-      // Only fonts actually referenced anywhere in the app — VT323 +
-      // JetBrains Mono (everything else was inherited boilerplate from
-      // the template and was downloading ~250KB of unused web fonts on
-      // every cold pageview).
+      // Restored the full original font roster — the trim-down to
+      // just VT323 + JetBrains Mono changed how the existing typography
+      // rendered in subtle ways (some inline `style` declarations cite
+      // fonts that aren't VT323/Geist/JetBrains, and the browser was
+      // falling back to system defaults that read differently). Loading
+      // costs ~250KB extra on cold loads but matches the original look.
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;500;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Geist:wght@400..900&family=Concert+One&family=Chakra+Petch:wght@400;500;600;700&family=Averia+Serif+Libre:wght@300;400;700&family=Spectral:wght@400;500;600;700&family=Dosis:wght@400;700;800&family=Nunito:wght@400;700;800;900&family=Patrick+Hand&family=Mali:wght@400;500;600;700&family=Handlee&family=Londrina+Solid:wght@100;300;400;900&family=Ramaraja&family=Moderustic:wght@300;400;500;600;700;800&family=Martel+Sans:wght@200;300;400;600;700;800;900&family=Sansita:wght@400;700;800;900&family=Anton&family=Lexend:wght@100..900&family=Cabin+Condensed:wght@400;500;600;700&family=Gravitas+One&family=Radio+Canada:wght@300;400;500;600;700&family=Geo:ital@0;1&family=Rationale&family=Kode+Mono:wght@400;500;600;700&family=Athiti:wght@200;300;400;500;600;700&family=Ovo&family=Miltonian&family=Rakkas&family=VT323&family=Geist+Mono:wght@100..900&family=Iceland&family=Oxanium:wght@200..800&family=Handjet:wght@100..900&family=JetBrains+Mono:wght@400;500;700&display=swap",
       },
     ],
   }),
