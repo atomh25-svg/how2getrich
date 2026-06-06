@@ -8,6 +8,7 @@ import {
 } from "@/lib/h2gr-plan";
 import { Wordmark } from "@/components/how2getrich/Wordmark";
 import { RingLoader } from "@/components/how2getrich/RingLoader";
+import { RightRailWithMoreInfo } from "./todo";
 
 // Inline type so we don't pull the server-side generator module (and
 // its `process.env` access) into the client bundle.
@@ -207,7 +208,7 @@ function MyPlan() {
   }
 
   return (
-    <PageLayout>
+    <PageLayout rightRail={loading ? undefined : <RightRailWithMoreInfo />}>
       {loading ? (
         <>
           <Wordmark />
