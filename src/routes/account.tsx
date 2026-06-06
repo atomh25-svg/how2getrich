@@ -108,49 +108,57 @@ function AccountPage() {
     <PageLayout>
       <Wordmark />
 
-      <div className="mt-[28px] flex items-center justify-between gap-[16px]">
-        <h1
-          className="text-[22px] leading-tight text-white"
+      {/* Constrained centered column so the Account header, the
+          dt/dd rows, and the manage button all sit on the same
+          vertical midline as the wordmark above. Without the width
+          cap, the rows span the full 540px stage and visually drift
+          off-center. */}
+      <div className="mt-[28px] flex w-full max-w-[360px] flex-col items-center">
+        <div className="flex w-full items-center justify-center gap-[16px]">
+          <h1
+            className="text-[22px] leading-tight text-white"
+            style={{ fontFamily: FONT_STACK }}
+          >
+            Account
+          </h1>
+          {/* Clerk's UserButton handles sign-out, "manage account",
+              etc. Themed via the appearance prop in __root.tsx. */}
+          <UserButton afterSignOutUrl="/" />
+        </div>
+
+        <dl
+          className="mt-[28px] flex w-full flex-col gap-[14px] text-[14px] text-white/85"
           style={{ fontFamily: FONT_STACK }}
         >
-          Account
-        </h1>
-        {/* Clerk's UserButton handles sign-out, "manage account", etc.
-            Themed via the appearance prop in __root.tsx ClerkProvider. */}
-        <UserButton afterSignOutUrl="/" />
-      </div>
+          <Row label="signed in as" value={data.email} />
+          <Row label="plan" value={tierLabel} />
+          {periodEndStr && (
+            <Row
+              label={data.tier === "free" ? "expired on" : "renews on"}
+              value={periodEndStr}
+            />
+          )}
+        </dl>
 
-      <dl
-        className="mt-[28px] flex flex-col gap-[14px] text-[14px] text-white/85"
-        style={{ fontFamily: FONT_STACK }}
-      >
-        <Row label="signed in as" value={data.email} />
-        <Row label="plan" value={tierLabel} />
-        {periodEndStr && (
-          <Row
-            label={data.tier === "free" ? "expired on" : "renews on"}
-            value={periodEndStr}
-          />
+        {data.hasStripeCustomer ? (
+          <button
+            type="button"
+            onClick={onManage}
+            className="mt-[36px] rounded-[6px] bg-white px-[18px] py-[10px] text-[14px] font-medium text-black transition hover:bg-white/90"
+            style={{ fontFamily: FONT_STACK }}
+          >
+            manage subscription
+          </button>
+        ) : (
+          <p
+            className="mt-[36px] text-center text-[13px] text-white/55"
+            style={{ fontFamily: FONT_STACK }}
+          >
+            no stripe customer on record yet. subscribe from /todo to set
+            one up.
+          </p>
         )}
-      </dl>
-
-      {data.hasStripeCustomer ? (
-        <button
-          type="button"
-          onClick={onManage}
-          className="mt-[36px] rounded-[6px] bg-white px-[18px] py-[10px] text-[14px] font-medium text-black transition hover:bg-white/90"
-          style={{ fontFamily: FONT_STACK }}
-        >
-          manage subscription
-        </button>
-      ) : (
-        <p
-          className="mt-[36px] text-[13px] text-white/55"
-          style={{ fontFamily: FONT_STACK }}
-        >
-          no stripe customer on record yet. subscribe from /todo to set one up.
-        </p>
-      )}
+      </div>
     </PageLayout>
   );
 }
