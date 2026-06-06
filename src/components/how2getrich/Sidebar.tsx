@@ -29,14 +29,14 @@ export function Sidebar() {
     >
       <SidebarLink to="/" label="Home" />
       <Divider />
-      <SidebarLink to="/about" label="About" className="mt-[17px]" />
+      <SidebarLink to="/about" label="About" className="mt-[13px]" />
 
       {/* My Plan — only surfaces in the rail once the user is signed
           in. The /my-plan route enforces paid status server-side, so
           a signed-in-but-unpaid click lands on the upgrade page. */}
       <Show when="signed-in">
         <Divider />
-        <SidebarLink to="/my-plan" label="My Plan" className="mt-[17px]" />
+        <SidebarLink to="/my-plan" label="My Plan" className="mt-[13px]" />
       </Show>
 
       <Divider />
@@ -48,7 +48,7 @@ export function Sidebar() {
         <SignInButton mode="modal">
           <button
             type="button"
-            className="block h-[21px] w-full cursor-pointer text-center text-[17px] leading-none text-white/90 transition hover:text-white mt-[17px]"
+            className="block h-[21px] w-full cursor-pointer text-center text-[17px] leading-none text-white/90 transition hover:text-white mt-[13px]"
             style={{
               fontFamily:
                 '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
@@ -59,7 +59,7 @@ export function Sidebar() {
         </SignInButton>
       </Show>
       <Show when="signed-in">
-        <SidebarLink to="/account" label="Account" className="mt-[17px]" />
+        <SidebarLink to="/account" label="Account" className="mt-[13px]" />
       </Show>
     </nav>
   );
@@ -89,7 +89,7 @@ function Divider() {
   return (
     <span
       aria-hidden
-      className="mx-auto mt-[17px] block h-px w-[22px] bg-white/55"
+      className="mx-auto mt-[13px] block h-px w-[22px] bg-white/55"
     />
   );
 }
