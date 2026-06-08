@@ -309,7 +309,7 @@ function TodoPlan() {
               items-center on a self-contained flex column guarantees
               dead-center alignment regardless of stage width. */}
           <div className="mt-[64px] flex w-full flex-col items-center justify-center">
-            <RingLoader label="generating your plan…" size={120} />
+            <RingLoader label="generating your plan…" size={60} />
           </div>
         </>
       ) : (
