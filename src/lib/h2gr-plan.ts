@@ -101,7 +101,14 @@ export const generateH2GRPlan = createServerFn({ method: "POST" })
         return { ok: false, reason: "requires-subscription" };
       }
 
-      // Cache hit — same session + same month + same input → return stored.
+      // PRESERVE-FIRST cache lookup: if a plan exists for this
+      // (sessionId, month) we ALWAYS return it, regardless of whether
+      // the input matches or the array length is exactly 30. The user's
+      // saved plan is sacred — re-submitting the homepage form, or any
+      // background re-load, must NEVER silently overwrite the plan they
+      // already committed to. Only the explicit replaceCurrentPlan
+      // server fn (called from the "Choose This Plan" button) is
+      // allowed to mutate an existing row.
       if (db) {
         try {
           const cached = await db
@@ -111,14 +118,14 @@ export const generateH2GRPlan = createServerFn({ method: "POST" })
             )
             .bind(sessionId, month)
             .first<{ input: string; plan_json: string }>();
-          if (cached && cached.input === input) {
+          if (cached) {
             try {
               const plan = JSON.parse(cached.plan_json) as H2GRPlanStep[];
-              if (Array.isArray(plan) && plan.length === 30) {
+              if (Array.isArray(plan) && plan.length > 0) {
                 return { ok: true, plan, cached: true, month };
               }
             } catch {
-              /* fall through */
+              /* malformed JSON in DB — fall through to regenerate */
             }
           }
         } catch (err) {
@@ -217,11 +224,12 @@ export const getH2GRPlan = createServerFn({ method: "GET" })
 
       try {
         const plan = JSON.parse(row.plan_json) as H2GRPlanStep[];
-        // A legacy 7-day cached plan would render as a broken month
-        // (days 1-7 then jump to 31). Treat shorter plans as a cache
-        // miss so the caller regenerates a full 30-day plan.
-        if (!Array.isArray(plan) || plan.length < 30) {
-          return { ok: false, reason: "stale-plan-length" };
+        // PRESERVE-FIRST: return whatever's saved, even if it isn't
+        // exactly 30 entries. A legacy short plan rendering as 7 days
+        // is a strictly better UX than silently regenerating + wiping
+        // the user's chosen plan.
+        if (!Array.isArray(plan) || plan.length === 0) {
+          return { ok: false, reason: "bad-plan" };
         }
         return { ok: true, plan, input: row.input, month };
       } catch {
