@@ -553,9 +553,9 @@ function Header() {
 export function RightRailWithMoreInfo() {
   return (
     <>
-      <DottedSpine className="absolute top-[90px] bottom-[60px] right-[160px] z-10" />
+      <DottedSpine className="absolute top-[90px] bottom-[60px] right-[260px] z-10" />
       <div
-        className="absolute right-[185px] top-[290px] z-10 flex flex-col items-end gap-[8px] text-white/40"
+        className="absolute right-[285px] top-[290px] z-10 flex flex-col items-end gap-[8px] text-white/40"
         style={{
           fontFamily:
             '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
