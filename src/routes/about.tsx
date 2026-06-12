@@ -21,7 +21,7 @@ function About() {
     <PageLayout>
       <Wordmark />
       <div
-        className="mt-[48px] flex w-full max-w-[420px] flex-col items-center gap-[14px] text-white/85"
+        className="mt-[48px] ml-[8px] flex w-full max-w-[420px] flex-col items-center gap-[14px] text-white/85"
         style={{
           fontFamily:
             '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',

@@ -31,19 +31,10 @@ export function Sidebar() {
       <Divider />
       <SidebarLink to="/about" label="About" className="mt-[12.5px]" />
 
-      {/* My Plan — only surfaces in the rail once the user is signed
-          in. The /my-plan route enforces paid status server-side, so
-          a signed-in-but-unpaid click lands on the upgrade page. */}
-      <Show when="signed-in">
-        <Divider />
-        <SidebarLink to="/my-plan" label="Plan" className="mt-[12.5px]" />
-      </Show>
-
+      {/* Account/Login first, then Plan — order swapped per design ask.
+          Account/Login is always present; the Login button mode flips to
+          a centered Account link once signed in. */}
       <Divider />
-
-      {/* Auth — single rail item that flips between Login (modal) and
-          Account (route) based on Clerk session. Replaces the old
-          fixed bottom-left widget. */}
       <Show when="signed-out">
         <SignInButton mode="modal">
           <button
@@ -60,6 +51,14 @@ export function Sidebar() {
       </Show>
       <Show when="signed-in">
         <SidebarLink to="/account" label="Account" className="mt-[12.5px]" />
+      </Show>
+
+      {/* Plan — only surfaces in the rail once the user is signed in.
+          The /my-plan route enforces paid status server-side, so a
+          signed-in-but-unpaid click lands on the upgrade page. */}
+      <Show when="signed-in">
+        <Divider />
+        <SidebarLink to="/my-plan" label="Plan" className="mt-[12.5px]" />
       </Show>
     </nav>
   );

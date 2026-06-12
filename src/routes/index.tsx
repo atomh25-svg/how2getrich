@@ -116,7 +116,7 @@ function Landing() {
           }}
           placeholder="type here"
           rows={5}
-          className="w-[297px] max-w-full resize-none rounded-[6px] bg-white px-[14px] py-[11px] text-[14.4px] text-black placeholder:text-[12.2px] placeholder:text-black/70 focus:outline-none focus:ring-2 focus:ring-white/40"
+          className="w-[273px] max-w-full resize-none rounded-[6px] bg-white px-[14px] py-[11px] text-[14.4px] text-black placeholder:text-[12.2px] placeholder:text-black/70 focus:outline-none focus:ring-2 focus:ring-white/40"
           style={{
             fontFamily:
               '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
