@@ -328,7 +328,7 @@ function TodoPlan() {
             </p>
           )}
           <ol
-            className="mt-[28px] flex w-full max-w-[407px] flex-col gap-[16px] text-white/90"
+            className="mt-[28px] flex w-full max-w-[387px] flex-col gap-[16px] text-white/90"
             style={{
               fontFamily:
                 '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
