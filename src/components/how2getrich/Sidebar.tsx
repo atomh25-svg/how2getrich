@@ -29,7 +29,7 @@ export function Sidebar() {
     >
       <SidebarLink to="/" label="Home" />
       <Divider />
-      <SidebarLink to="/about" label="About" className="mt-[12.5px]" />
+      <SidebarLink to="/about" label="About" className="mt-[12.1px]" />
 
       {/* Account/Login first, then Plan — order swapped per design ask.
           Account/Login is always present; the Login button mode flips to
@@ -39,7 +39,7 @@ export function Sidebar() {
         <SignInButton mode="modal">
           <button
             type="button"
-            className="block h-[21px] w-full cursor-pointer text-center text-[17px] leading-none text-white/90 transition hover:text-white mt-[12.5px]"
+            className="block h-[21px] w-full cursor-pointer text-center text-[17px] leading-none text-white/90 transition hover:text-white mt-[12.1px]"
             style={{
               fontFamily:
                 '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
@@ -50,7 +50,7 @@ export function Sidebar() {
         </SignInButton>
       </Show>
       <Show when="signed-in">
-        <SidebarLink to="/account" label="Account" className="mt-[12.5px]" />
+        <SidebarLink to="/account" label="Account" className="mt-[12.1px]" />
       </Show>
 
       {/* Plan — only surfaces in the rail once the user is signed in.
@@ -58,7 +58,7 @@ export function Sidebar() {
           signed-in-but-unpaid click lands on the upgrade page. */}
       <Show when="signed-in">
         <Divider />
-        <SidebarLink to="/my-plan" label="Plan" className="mt-[12.5px]" />
+        <SidebarLink to="/my-plan" label="Plan" className="mt-[12.1px]" />
       </Show>
     </nav>
   );
@@ -88,7 +88,7 @@ function Divider() {
   return (
     <span
       aria-hidden
-      className="mx-auto mt-[12.5px] block h-px w-[22px] bg-white/55"
+      className="mx-auto mt-[12.1px] block h-px w-[22px] bg-white/55"
     />
   );
 }
