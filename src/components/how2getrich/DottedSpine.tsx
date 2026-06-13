@@ -22,7 +22,7 @@ export function DottedSpine({
         // → each "dot" reads as a thin short bar. Period dropped from
         // 5.2px → 5.0px to slip ~3 more dots into the same spine
         // length on the landing page (366px tall = 73 dots vs 70).
-        width: 2.8,
+        width: 2.7,
         backgroundImage:
           "linear-gradient(to bottom, rgba(255,255,255,0.95) 0 1px, transparent 1px)",
         backgroundSize: "100% 5.0px",
