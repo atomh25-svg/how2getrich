@@ -52,7 +52,7 @@ export function PageLayout({
               gap. The stage stays perfectly viewport-centered because
               the sidebar is absolutely positioned outside the flow.
               `md:block` keeps it hidden on phones (overlap risk). */}
-          <div className="absolute right-full top-[186px] mr-[25px] hidden md:block">
+          <div className="absolute right-full top-[179px] mr-[20px] hidden md:block">
             <Sidebar />
           </div>
           {children}
