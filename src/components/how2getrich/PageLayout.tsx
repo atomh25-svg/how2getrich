@@ -47,7 +47,7 @@ export function PageLayout({
             so its children's flex-1 (e.g. the dotted spine) actually
             stretches to fill the page instead of collapsing to its
             min-height. */}
-        <div className="relative mx-auto flex w-[540px] max-w-full flex-col items-center px-6 pt-[48px]">
+        <div className="relative mx-auto flex w-[540px] max-w-full flex-col items-center px-6 pt-[53px]">
           {/* Sidebar — anchored to the stage's left edge with a 55px
               gap. The stage stays perfectly viewport-centered because
               the sidebar is absolutely positioned outside the flow.
