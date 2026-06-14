@@ -88,7 +88,7 @@ function Landing() {
       />
       <form
         onSubmit={handleSubmit}
-        className="mt-[5px] flex w-full flex-col items-center gap-[11px]"
+        className="mt-[7.5px] flex w-full flex-col items-center gap-[11px]"
       >
         <label
           htmlFor="tell"
