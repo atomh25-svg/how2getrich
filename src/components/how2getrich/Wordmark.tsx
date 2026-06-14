@@ -17,7 +17,16 @@ import moneyStack from "@/assets/money-stack.png";
  */
 export function Wordmark() {
   return (
-    <div className="relative mt-[44.3px] inline-block">
+    // Outer scale(0.98) shrinks both the wordmark text AND the
+    // overhanging money-stack icon as a single composition (~2%
+    // smaller). Layout box is unaffected so the spine + form below
+    // stay in their relative positions — only the visible pixels
+    // shrink. Origin top center so the shrink reads as 'a little
+    // smaller', not 'pushed to a corner'.
+    <div
+      className="relative mt-[44.3px] inline-block"
+      style={{ transform: "scale(0.98)", transformOrigin: "center top" }}
+    >
       <h1
         className="text-[33.1px] leading-none text-white"
         style={{
