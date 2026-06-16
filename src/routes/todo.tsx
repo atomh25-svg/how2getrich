@@ -534,7 +534,7 @@ function TodoPlan() {
 function Header() {
   return (
     <h1
-      className="mt-[18px] text-[22px] leading-tight text-white"
+      className="mt-[8px] text-[22px] leading-tight text-white"
       style={{
         fontFamily:
           '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
@@ -553,9 +553,9 @@ function Header() {
 export function RightRailWithMoreInfo() {
   return (
     <>
-      <DottedSpine className="absolute top-[90px] bottom-[60px] right-[260px] z-10" />
+      <DottedSpine className="absolute top-[80px] bottom-[70px] right-[260px] z-10" />
       <div
-        className="absolute right-[285px] top-[290px] z-10 flex flex-col items-end gap-[8px] text-white/40"
+        className="absolute right-[285px] top-[280px] z-10 flex flex-col items-end gap-[8px] text-white/40"
         style={{
           fontFamily:
             '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',

@@ -327,7 +327,7 @@ function MyPlan() {
 
 function Header() {
   return (
-    <div className="mt-[4px] flex w-full max-w-[420px] flex-col items-center">
+    <div className="mt-[-6px] flex w-full max-w-[420px] flex-col items-center">
       <h1
         className="text-center text-[28px] leading-none text-white"
         style={{
