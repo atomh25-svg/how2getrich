@@ -328,7 +328,7 @@ function TodoPlan() {
             </p>
           )}
           <ol
-            className="mt-[28px] flex w-full max-w-[387px] flex-col gap-[16px] text-white/90"
+            className="mt-[28px] flex w-full max-w-[271px] flex-col gap-[16px] text-white/90"
             style={{
               fontFamily:
                 '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
@@ -428,7 +428,7 @@ function TodoPlan() {
                 '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
             }}
           >
-            <span>Unlock the full plan — $9.99/mo</span>
+            <span>Full Plan</span>
             <Arrow className="h-[9px] w-[44px] text-black" />
           </Link>
         </div>
