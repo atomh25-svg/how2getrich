@@ -5,9 +5,11 @@ import { Link } from "@tanstack/react-router";
  *
  * Two layouts:
  *   - "center" (default): fixed bottom-center strip across the viewport.
- *   - "bottom-right": single tight paragraph anchored to the bottom-right
- *     corner. Used on /todo so the disclaimer doesn't fight the centered
- *     days list.
+ *   - "bottom-right": tight 4-line paragraph anchored to the bottom-right
+ *     corner. Used on /my-plan (unlocked unlimited view) so the disclaimer
+ *     sits clear of the centered days list AND the right-rail "More info"
+ *     bar. Explicit line breaks + whitespace-nowrap keep the block exactly
+ *     4 lines tall regardless of viewport / scale.
  */
 export function Footer({
   align = "center",
@@ -18,42 +20,53 @@ export function Footer({
     return (
       <footer
         aria-label="Legal disclaimer"
-        className="pointer-events-none fixed bottom-[14px] right-[18px] z-30 max-w-[260px] text-right"
+        className="pointer-events-none fixed bottom-[14px] right-[18px] z-30 text-right"
         style={{
           fontFamily:
             '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
         }}
       >
         <p className="text-[10px] leading-snug text-white/35">
-          &gt; not financial advice · results vary wildly · plans are
-          AI-generated · your money, your choice. © 2026 how2getrich.online ·{" "}
-          <Link
-            to="/privacy"
-            className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
-          >
-            privacy
-          </Link>{" "}
-          ·{" "}
-          <Link
-            to="/terms"
-            className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
-          >
-            terms
-          </Link>{" "}
-          ·{" "}
-          <Link
-            to="/refunds"
-            className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
-          >
-            refunds
-          </Link>{" "}
-          ·{" "}
-          <a
-            href="mailto:support@how2getrich.online"
-            className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
-          >
-            contact
-          </a>
+          <span className="block whitespace-nowrap">
+            &gt; not financial advice
+          </span>
+          <span className="block whitespace-nowrap">
+            results vary · plans AI-generated
+          </span>
+        </p>
+        <p className="mt-[2px] text-[10px] leading-snug text-white/25">
+          <span className="block whitespace-nowrap">
+            © 2026 how2getrich.online
+          </span>
+          <span className="block whitespace-nowrap">
+            <Link
+              to="/privacy"
+              className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
+            >
+              privacy
+            </Link>{" "}
+            ·{" "}
+            <Link
+              to="/terms"
+              className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
+            >
+              terms
+            </Link>{" "}
+            ·{" "}
+            <Link
+              to="/refunds"
+              className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
+            >
+              refunds
+            </Link>{" "}
+            ·{" "}
+            <a
+              href="mailto:support@how2getrich.online"
+              className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
+            >
+              contact
+            </a>
+          </span>
         </p>
       </footer>
     );

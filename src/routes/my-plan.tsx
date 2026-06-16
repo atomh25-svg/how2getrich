@@ -208,7 +208,10 @@ function MyPlan() {
   }
 
   return (
-    <PageLayout rightRail={loading ? undefined : <RightRailWithMoreInfo />}>
+    <PageLayout
+      rightRail={loading ? undefined : <RightRailWithMoreInfo />}
+      footerAlign="bottom-right"
+    >
       {loading ? (
         <>
           <Wordmark />

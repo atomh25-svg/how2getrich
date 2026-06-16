@@ -297,7 +297,6 @@ function TodoPlan() {
   return (
     <PageLayout
       rightRail={loading ? undefined : <RightRailWithMoreInfo />}
-      footerAlign="bottom-right"
     >
       {/* While Claude is generating: brand only (Wordmark) + loader.
           The "To Do:" header, the "based on: ..." echo, and the
