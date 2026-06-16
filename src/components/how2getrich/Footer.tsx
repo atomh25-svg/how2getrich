@@ -3,14 +3,62 @@ import { Link } from "@tanstack/react-router";
 /**
  * Legal disclaimer footer shown on every how2getrich screen.
  *
- * Fixed at the bottom of the viewport so it survives any layout,
- * dim and small so it doesn't fight the minimalist composition but
- * visible enough to count as a "clear and conspicuous" disclosure
- * under FTC guidance. The links to Privacy / Terms / Refunds are
- * pointer-events-auto'd individually so they remain clickable while
- * the rest of the footer stays click-through.
+ * Two layouts:
+ *   - "center" (default): fixed bottom-center strip across the viewport.
+ *   - "bottom-right": single tight paragraph anchored to the bottom-right
+ *     corner. Used on /todo so the disclaimer doesn't fight the centered
+ *     days list.
  */
-export function Footer() {
+export function Footer({
+  align = "center",
+}: {
+  align?: "center" | "bottom-right";
+}) {
+  if (align === "bottom-right") {
+    return (
+      <footer
+        aria-label="Legal disclaimer"
+        className="pointer-events-none fixed bottom-[14px] right-[18px] z-30 max-w-[260px] text-right"
+        style={{
+          fontFamily:
+            '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+        }}
+      >
+        <p className="text-[10px] leading-snug text-white/35">
+          &gt; not financial advice · results vary wildly · plans are
+          AI-generated · your money, your choice. © 2026 how2getrich.online ·{" "}
+          <Link
+            to="/privacy"
+            className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
+          >
+            privacy
+          </Link>{" "}
+          ·{" "}
+          <Link
+            to="/terms"
+            className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
+          >
+            terms
+          </Link>{" "}
+          ·{" "}
+          <Link
+            to="/refunds"
+            className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
+          >
+            refunds
+          </Link>{" "}
+          ·{" "}
+          <a
+            href="mailto:support@how2getrich.online"
+            className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
+          >
+            contact
+          </a>
+        </p>
+      </footer>
+    );
+  }
+
   return (
     <footer
       aria-label="Legal disclaimer"

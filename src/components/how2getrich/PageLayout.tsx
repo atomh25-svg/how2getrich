@@ -21,9 +21,11 @@ import { Footer } from "./Footer";
 export function PageLayout({
   children,
   rightRail,
+  footerAlign = "center",
 }: {
   children: ReactNode;
   rightRail?: ReactNode;
+  footerAlign?: "center" | "bottom-right";
 }) {
   return (
     <main className="relative min-h-screen w-full overflow-x-hidden bg-black text-white">
@@ -59,7 +61,7 @@ export function PageLayout({
         </div>
       </div>
       {rightRail}
-      <Footer />
+      <Footer align={footerAlign} />
     </main>
   );
 }
