@@ -20,7 +20,7 @@ export function Footer({
     return (
       <footer
         aria-label="Legal disclaimer"
-        className="pointer-events-none fixed bottom-[14px] right-[18px] z-30 text-right"
+        className="pointer-events-none fixed bottom-[14px] right-[28px] z-30 text-center"
         style={{
           fontFamily:
             '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
