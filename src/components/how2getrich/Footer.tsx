@@ -26,46 +26,33 @@ export function Footer({
             '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
         }}
       >
+        {/* 4 lines, each exactly 30 chars in VT323 (monospace) so the
+            block reads as a literal square of text. Padding dots on
+            lines 3 and 4 keep the widths matched. */}
         <p className="text-[10px] leading-snug text-white/35">
           <span className="block whitespace-nowrap">
-            &gt; not financial advice
+            &gt; not financial advice · plans
           </span>
           <span className="block whitespace-nowrap">
-            results vary · plans AI-generated
+            AI-generated, results may vary
           </span>
-        </p>
-        <p className="mt-[2px] text-[10px] leading-snug text-white/25">
-          <span className="block whitespace-nowrap">
-            © 2026 how2getrich.online
+          <span className="block whitespace-nowrap text-white/25">
+            © 2026 · how2getrich.online ··
           </span>
-          <span className="block whitespace-nowrap">
-            <Link
+          <span className="block whitespace-nowrap text-white/25">
+            ·<Link
               to="/privacy"
               className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
-            >
-              privacy
-            </Link>{" "}
-            ·{" "}
-            <Link
+            >privacy</Link>·<Link
               to="/terms"
               className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
-            >
-              terms
-            </Link>{" "}
-            ·{" "}
-            <Link
+            >terms</Link>·<Link
               to="/refunds"
               className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
-            >
-              refunds
-            </Link>{" "}
-            ·{" "}
-            <a
+            >refunds</Link>·<a
               href="mailto:support@how2getrich.online"
               className="pointer-events-auto underline-offset-2 transition hover:text-white/55 hover:underline"
-            >
-              contact
-            </a>
+            >contact</a>
           </span>
         </p>
       </footer>
