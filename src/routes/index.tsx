@@ -77,6 +77,12 @@ function Landing() {
   return (
     <PageLayout>
       <Wordmark />
+      {/* Thin white underline under "how2getrich" — visually caps the
+          wordmark and reads as the top of the dotted spine. */}
+      <span
+        aria-hidden
+        className="mt-[8px] block h-px w-[110px] self-center bg-white/85"
+      />
       {/* Spine begins ~10px below the wordmark and stretches down
           to the label. min-height keeps it visible on shorter
           windows. */}
@@ -84,12 +90,18 @@ function Landing() {
           below it instead of being pushed around by viewport-height
           tricks. The page now sizes to content rather than min-h-screen. */}
       <DottedSpine
-        className="mt-[19.5px] mb-[10px] h-[371px] self-center"
+        className="mt-[11.5px] mb-[10px] h-[371px] self-center"
       />
       <form
         onSubmit={handleSubmit}
         className="mt-[7.5px] flex w-full flex-col items-center gap-[11px]"
       >
+        {/* Thin white bar above "Tell me about yourself" — mirrors the
+            bar under the wordmark and caps the bottom of the spine. */}
+        <span
+          aria-hidden
+          className="-mb-[2px] block h-px w-[110px] bg-white/85"
+        />
         <label
           htmlFor="tell"
           className="text-[16.4px] leading-tight text-white/90"
