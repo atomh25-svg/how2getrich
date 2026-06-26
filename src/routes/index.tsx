@@ -82,7 +82,7 @@ function Landing() {
       <span
         aria-hidden
         className="mt-[8px] block h-px w-[90px] self-center bg-white/55"
-        style={{ transform: "scaleY(0.7)" }}
+        style={{ transform: "scaleY(0.5)" }}
       />
       {/* Spine begins ~10px below the wordmark and stretches down
           to the label. min-height keeps it visible on shorter
