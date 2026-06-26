@@ -101,7 +101,8 @@ function Landing() {
             bar under the wordmark and caps the bottom of the spine. */}
         <span
           aria-hidden
-          className="-mb-[2px] block h-px w-[70px] bg-white/85"
+          className="-mb-[2px] block h-px w-[110px] bg-white/85"
+          style={{ transform: "scaleY(0.5)" }}
         />
         <label
           htmlFor="tell"
