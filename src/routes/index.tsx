@@ -95,7 +95,7 @@ function Landing() {
       />
       <form
         onSubmit={handleSubmit}
-        className="mt-[7.5px] flex w-full flex-col items-center gap-[11px]"
+        className="mt-[7.5px] flex w-full flex-col items-center gap-[5px]"
       >
         {/* Thin white bar above "Tell me about yourself" — mirrors the
             bar under the wordmark and caps the bottom of the spine. */}
@@ -135,7 +135,7 @@ function Landing() {
             fontFamily:
               '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
             lineHeight: 1.2,
-            minHeight: 123,
+            minHeight: 100,
           }}
         />
         {/* Hidden submit so Cmd/Ctrl+Enter works and the form is keyboard
