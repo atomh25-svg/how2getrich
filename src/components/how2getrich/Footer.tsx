@@ -68,10 +68,10 @@ export function Footer({
           '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
       }}
     >
-      <p className="text-[10px] leading-tight text-white/35">
+      <p className="text-[9px] leading-[1.1] text-white/35">
         &gt; not financial advice · results vary wildly · plans are AI-generated · your money, your choice
       </p>
-      <p className="mt-[2px] text-[10px] leading-tight text-white/25">
+      <p className="mt-[1px] text-[9px] leading-[1.1] text-white/25">
         © 2026 how2getrich.online ·{" "}
         <Link
           to="/privacy"
