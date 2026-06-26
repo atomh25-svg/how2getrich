@@ -91,7 +91,7 @@ function Landing() {
           below it instead of being pushed around by viewport-height
           tricks. The page now sizes to content rather than min-h-screen. */}
       <DottedSpine
-        className="mt-[9.5px] mb-[6px] h-[377px] self-center"
+        className="mt-[10.5px] mb-[7px] h-[375px] self-center"
       />
       <form
         onSubmit={handleSubmit}
