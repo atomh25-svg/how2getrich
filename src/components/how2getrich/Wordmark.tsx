@@ -25,7 +25,7 @@ export function Wordmark() {
     // smaller', not 'pushed to a corner'.
     <div
       className="relative mt-[44.3px] inline-block"
-      style={{ transform: "scale(1.0)", transformOrigin: "center top" }}
+      style={{ transform: "scale(0.99)", transformOrigin: "center top" }}
     >
       <h1
         className="text-[33.1px] leading-none text-white"
