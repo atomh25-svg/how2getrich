@@ -428,7 +428,7 @@ function TodoPlan() {
                 '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
             }}
           >
-            <span>Full Plan</span>
+            <span>$9.99 Full Plan</span>
             <Arrow className="h-[9px] w-[44px] text-black" />
           </Link>
         </div>
