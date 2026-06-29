@@ -77,13 +77,13 @@ function Landing() {
   return (
     <PageLayout>
       <Wordmark />
-      {/* Thin white underline under "how2getrich" — visually caps the
-          wordmark and reads as the top of the dotted spine. */}
+      {/* Cap bar under the wordmark temporarily removed — see WIP note.
       <span
         aria-hidden
         className="mt-[6px] block h-px w-[90px] self-center bg-white/55"
         style={{ transform: "scaleY(1.1)" }}
       />
+      */}
       {/* Spine begins ~10px below the wordmark and stretches down
           to the label. min-height keeps it visible on shorter
           windows. */}
