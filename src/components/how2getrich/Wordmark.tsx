@@ -48,7 +48,6 @@ export function Wordmark() {
         <span style={{ display: "inline-block", transform: "scaleX(1.05)" }}>
           h
         </span>
-        .online
       </h1>
       <img
         src={moneyStack}
