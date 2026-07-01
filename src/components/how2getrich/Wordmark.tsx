@@ -24,7 +24,7 @@ export function Wordmark() {
     // shrink. Origin top center so the shrink reads as 'a little
     // smaller', not 'pushed to a corner'.
     <div
-      className="relative mt-[44.3px] inline-block [transform:scale(0.99)] md:[transform:scale(1.485)]"
+      className="relative mt-0 inline-block [transform:scale(0.99)] md:mt-[44.3px] md:[transform:scale(1.485)]"
       style={{ transformOrigin: "center top" }}
     >
       <h1

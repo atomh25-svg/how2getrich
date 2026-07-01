@@ -38,7 +38,7 @@ export function PageLayout({
           launchfly. Floor at 0.5 so very narrow screens still read.
           Origin top-center so the page anchors to the top edge. */}
       <div
-        className="relative mx-auto [transform:translate(-9px,-100px)_scale(clamp(0.5,calc(100vw/540),1))] md:[transform:scale(clamp(0.5,calc(100vw/540),1))]"
+        className="relative mx-auto [transform:translateX(-9px)_scale(clamp(0.5,calc(100vw/540),1))] md:[transform:scale(clamp(0.5,calc(100vw/540),1))]"
         style={{
           width: "min(540px, 100vw)",
           transformOrigin: "top center",
@@ -48,7 +48,7 @@ export function PageLayout({
             so its children's flex-1 (e.g. the dotted spine) actually
             stretches to fill the page instead of collapsing to its
             min-height. */}
-        <div className="relative mx-auto flex w-[540px] max-w-full flex-col items-center px-6 pt-[53px] pb-[120px]">
+        <div className="relative mx-auto flex w-[540px] max-w-full flex-col items-center px-6 pt-0 pb-[120px] md:pt-[53px]">
           {/* Sidebar — anchored to the stage's left edge with a 55px
               gap. The stage stays perfectly viewport-centered because
               the sidebar is absolutely positioned outside the flow.
