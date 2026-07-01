@@ -38,10 +38,9 @@ export function PageLayout({
           launchfly. Floor at 0.5 so very narrow screens still read.
           Origin top-center so the page anchors to the top edge. */}
       <div
-        className="relative mx-auto"
+        className="relative mx-auto [transform:translateX(-9px)_scale(clamp(0.5,calc(100vw/540),1))] md:[transform:scale(clamp(0.5,calc(100vw/540),1))]"
         style={{
           width: "min(540px, 100vw)",
-          transform: "scale(clamp(0.5, calc(100vw / 540), 1))",
           transformOrigin: "top center",
         }}
       >
