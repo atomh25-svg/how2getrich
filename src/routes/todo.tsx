@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { env } from "cloudflare:workers";
+import { SignInButton, useUser } from "@clerk/tanstack-react-start";
 import { PageLayout } from "@/components/how2getrich/PageLayout";
 import { DottedSpine } from "@/components/how2getrich/DottedSpine";
 import {
@@ -9,8 +12,58 @@ import {
   getH2GRStatus,
   replaceCurrentPlan,
 } from "@/lib/h2gr-plan";
+import { createCheckoutSession } from "@/lib/stripe";
+import { getCurrentUser } from "@/lib/entitlement";
 import { RingLoader } from "@/components/how2getrich/RingLoader";
 import { Wordmark } from "@/components/how2getrich/Wordmark";
+
+// ──────────────────────────────────────────────────────────
+// Server fn: mint a Stripe Checkout session, return its URL.
+// Inlined here (previously lived on /todo/upgrade which has been
+// removed — the "$9.99 Full Plan" button now goes straight to
+// Stripe instead of an intermediate paywall screen).
+// ──────────────────────────────────────────────────────────
+
+const startCheckout = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: { sessionId: string; returnPath?: string }) => ({
+      sessionId: typeof data?.sessionId === "string" ? data.sessionId : "",
+      returnPath:
+        typeof data?.returnPath === "string" ? data.returnPath : "/my-plan",
+    }),
+  )
+  .handler(
+    async ({
+      data,
+    }): Promise<{ ok: true; url: string } | { ok: false; reason: string }> => {
+      const user = await getCurrentUser(env as unknown as { DB?: D1Database });
+      if (!user) return { ok: false, reason: "not-signed-in" };
+
+      const origin = process.env.PUBLIC_ORIGIN ?? "https://how2getrich.online";
+      try {
+        const url = await createCheckoutSession({
+          tier: "basic",
+          clerkUserId: user.clerkUserId,
+          email: user.email,
+          sessionId: data.sessionId,
+          existingCustomerId: user.stripeCustomerId ?? undefined,
+          successUrl: `${origin}${data.returnPath}?subscribed=1`,
+          cancelUrl: `${origin}/todo?s=${encodeURIComponent(data.sessionId)}`,
+        });
+        return { ok: true, url };
+      } catch (err) {
+        console.error(
+          "[checkout] failed:",
+          err instanceof Error
+            ? `${err.name}: ${err.message}\n${err.stack}`
+            : String(err),
+        );
+        const message =
+          err instanceof Error ? err.message : String(err);
+        return { ok: false, reason: `stripe: ${message.slice(0, 200)}` };
+      }
+    },
+  );
 
 // Inline type + static fallback so this route doesn't pull the
 // server-side ideas-generator module (and its `process.env` access)
@@ -104,6 +157,9 @@ function TodoPlan() {
   // for users who hit /todo directly without coming from /).
   const { s: sessionIdFromUrl, month, subscribed, intent } = Route.useSearch();
   const navigate = useNavigate();
+  const { isSignedIn, isLoaded: clerkLoaded } = useUser();
+  const [checkoutPending, setCheckoutPending] = useState(false);
+  const autoResumedCheckout = useRef(false);
 
   // Echo the user's answer back at the top of the plan once we have it.
   const [tellMe, setTellMe] = useState<string>("");
@@ -203,13 +259,11 @@ function TodoPlan() {
             return;
           }
           if (!cached.ok && cached.reason === "requires-subscription") {
-            // Hard-redirect free users who deep-linked into a paid month
-            // back to the upgrade page so they see the price before the
-            // empty-state confuses them.
-            navigate({
-              to: "/todo/upgrade",
-              search: { s: sessionId },
-            });
+            // Free user deep-linked into a paid month. The upgrade
+            // interstitial has been retired — leave them on /todo
+            // showing the static preview + the "$9.99 Full Plan"
+            // button (which now opens Stripe Checkout directly).
+            setLoading(false);
             return;
           }
         }
@@ -221,13 +275,9 @@ function TodoPlan() {
         });
         if (cancelled) return;
         if (res.ok && Array.isArray(res.plan)) setPlan(res.plan);
-        else if (!res.ok && res.reason === "requires-subscription") {
-          navigate({
-            to: "/todo/upgrade",
-            search: { s: sessionId ?? "" },
-          });
-          return;
-        }
+        // requires-subscription: fall through and show the free
+        // preview + the paywall CTA below. No upgrade page to redirect
+        // to anymore.
         await applyStatus(await statusPromise);
       } catch (err) {
         if (cancelled) return;
@@ -257,6 +307,50 @@ function TodoPlan() {
     };
   }, [sessionIdFromUrl, month, navigate]);
 
+  // Open Stripe Checkout for the $9.99 Full Plan. Called by the
+  // paywall CTA below (or auto-resumed after Clerk sign-in).
+  async function openCheckout() {
+    if (checkoutPending) return;
+    const sessionId =
+      sessionIdFromUrl ||
+      (typeof window !== "undefined"
+        ? window.localStorage.getItem("h2gr:sessionId") ?? ""
+        : "");
+    setCheckoutPending(true);
+    try {
+      const result = await startCheckout({
+        data: { sessionId, returnPath: "/my-plan" },
+      });
+      if (result.ok) {
+        window.location.href = result.url;
+      } else if (result.reason === "not-signed-in") {
+        window.alert("Sign in first — the button below opens the sign-in.");
+      } else {
+        window.alert(`Couldn't open checkout: ${result.reason}`);
+      }
+    } finally {
+      setCheckoutPending(false);
+    }
+  }
+
+  // Auto-resume checkout after Clerk sign-in redirect. The paywall
+  // <SignInButton> sets forceRedirectUrl to /todo?intent=basic; once
+  // Clerk resolves signed-in, fire checkout and drop the intent from
+  // the URL so a refresh doesn't loop.
+  useEffect(() => {
+    if (autoResumedCheckout.current) return;
+    if (!clerkLoaded || !isSignedIn) return;
+    if (intent !== "basic") return;
+    autoResumedCheckout.current = true;
+    navigate({
+      to: "/todo",
+      search: { s: sessionIdFromUrl, month, subscribed, intent: "" },
+      replace: true,
+    });
+    openCheckout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clerkLoaded, isSignedIn, intent]);
+
   // Generate Month N+1 on demand (subscribers only).
   async function onGenerateNextMonth() {
     const sessionId =
@@ -281,7 +375,11 @@ function TodoPlan() {
           search: { s: sessionId, month: nextMonth },
         });
       } else if (res.reason === "requires-subscription") {
-        navigate({ to: "/todo/upgrade", search: { s: sessionId } });
+        // Shouldn't happen — this button only shows for subscribed
+        // users. Prompt them to re-check their subscription state.
+        window.alert(
+          "This action needs an active subscription. Reload the page or check /account.",
+        );
       } else {
         window.alert(`Couldn't generate Month ${nextMonth}: ${res.reason}`);
       }
@@ -416,21 +514,19 @@ function TodoPlan() {
       )}
 
       {/* Free-user paywall — only shown when NOT in previewMode (paid
-          users see the "Choose This Plan" block above instead). */}
+          users see the "Choose This Plan" block above instead).
+          Clicking opens Stripe Checkout directly. Signed-out users
+          get the Clerk modal first with a redirect back to
+          /todo?intent=basic so the auto-resume effect above can
+          continue into checkout after sign-in. */}
       {!loading && !previewMode && (
         <div className="mt-[40px] flex w-full justify-center">
-          <Link
-            to="/todo/upgrade"
-            search={{ s: sessionIdFromUrl }}
-            className="group inline-flex h-[80px] w-[437px] max-w-full items-center justify-center gap-[16px] rounded-[6px] bg-white text-[16px] text-black/80 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-white/40"
-            style={{
-              fontFamily:
-                '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
-            }}
-          >
-            <span>$9.99 Full Plan</span>
-            <Arrow className="h-[9px] w-[44px] text-black" />
-          </Link>
+          <PaywallCTA
+            sessionId={sessionIdFromUrl}
+            isSignedIn={Boolean(isSignedIn)}
+            pending={checkoutPending}
+            onOpenCheckout={openCheckout}
+          />
         </div>
       )}
 
@@ -565,6 +661,57 @@ export function RightRailWithMoreInfo() {
         <Arrow className="h-[5px] w-[44px] text-white/40" />
       </div>
     </>
+  );
+}
+
+/**
+ * $9.99 Full Plan CTA at the bottom of the free preview.
+ *
+ * When signed-in: click opens Stripe Checkout directly (via
+ *   the openCheckout callback the parent supplies).
+ * When signed-out: click opens the Clerk sign-in modal with
+ *   forceRedirectUrl back to /todo?intent=basic — the parent's
+ *   useEffect auto-fires checkout once Clerk resolves.
+ */
+function PaywallCTA({
+  sessionId,
+  isSignedIn,
+  pending,
+  onOpenCheckout,
+}: {
+  sessionId: string;
+  isSignedIn: boolean;
+  pending: boolean;
+  onOpenCheckout: () => void;
+}) {
+  const label = pending ? "opening checkout…" : "$9.99 Full Plan";
+  const inner = (
+    <button
+      type="button"
+      onClick={isSignedIn ? onOpenCheckout : undefined}
+      disabled={pending}
+      className="group inline-flex h-[80px] w-[437px] max-w-full items-center justify-center gap-[16px] rounded-[6px] bg-white text-[16px] text-black/80 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-white/40 disabled:cursor-wait disabled:opacity-60"
+      style={{
+        fontFamily:
+          '"VT323", "JetBrains Mono", ui-monospace, "SF Mono", monospace',
+      }}
+    >
+      <span>{label}</span>
+      {!pending && <Arrow className="h-[9px] w-[44px] text-black" />}
+    </button>
+  );
+
+  if (isSignedIn) return inner;
+
+  const redirectUrl = `/todo?s=${encodeURIComponent(sessionId)}&intent=basic`;
+  return (
+    <SignInButton
+      mode="modal"
+      forceRedirectUrl={redirectUrl}
+      signUpForceRedirectUrl={redirectUrl}
+    >
+      {inner}
+    </SignInButton>
   );
 }
 

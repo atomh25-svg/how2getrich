@@ -17,7 +17,6 @@ import { Route as MyPlanRouteImport } from './routes/my-plan'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TodoUpgradeRouteImport } from './routes/todo_.upgrade'
 import { Route as TodoDayRouteImport } from './routes/todo_.$day'
 
 const TodoRoute = TodoRouteImport.update({
@@ -60,11 +59,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TodoUpgradeRoute = TodoUpgradeRouteImport.update({
-  id: '/todo_/upgrade',
-  path: '/todo/upgrade',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TodoDayRoute = TodoDayRouteImport.update({
   id: '/todo_/$day',
   path: '/todo/$day',
@@ -81,7 +75,6 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/todo': typeof TodoRoute
   '/todo/$day': typeof TodoDayRoute
-  '/todo/upgrade': typeof TodoUpgradeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,7 +86,6 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/todo': typeof TodoRoute
   '/todo/$day': typeof TodoDayRoute
-  '/todo/upgrade': typeof TodoUpgradeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,7 +98,6 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/todo': typeof TodoRoute
   '/todo_/$day': typeof TodoDayRoute
-  '/todo_/upgrade': typeof TodoUpgradeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -120,7 +111,6 @@ export interface FileRouteTypes {
     | '/terms'
     | '/todo'
     | '/todo/$day'
-    | '/todo/upgrade'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -132,7 +122,6 @@ export interface FileRouteTypes {
     | '/terms'
     | '/todo'
     | '/todo/$day'
-    | '/todo/upgrade'
   id:
     | '__root__'
     | '/'
@@ -144,7 +133,6 @@ export interface FileRouteTypes {
     | '/terms'
     | '/todo'
     | '/todo_/$day'
-    | '/todo_/upgrade'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -157,7 +145,6 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   TodoRoute: typeof TodoRoute
   TodoDayRoute: typeof TodoDayRoute
-  TodoUpgradeRoute: typeof TodoUpgradeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -218,13 +205,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/todo_/upgrade': {
-      id: '/todo_/upgrade'
-      path: '/todo/upgrade'
-      fullPath: '/todo/upgrade'
-      preLoaderRoute: typeof TodoUpgradeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/todo_/$day': {
       id: '/todo_/$day'
       path: '/todo/$day'
@@ -245,7 +225,6 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   TodoRoute: TodoRoute,
   TodoDayRoute: TodoDayRoute,
-  TodoUpgradeRoute: TodoUpgradeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
